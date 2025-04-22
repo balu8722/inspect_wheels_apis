@@ -11,16 +11,18 @@ module.exports.CONSTANTS = {
       RESET_PASSWORD: "/resetpassword",
       CHANGE_PASSWORD: "/changepassword",
       REFRESH_TOKEN: "/refreshtoken/:refreshtoken",
-      USER_LIST: "/userslist",
-      USER_DETAILS_BY_ID: "/userlist/:id",
+      ADMINS_LIST: "/adminslist",
+      ADMINS_DETAILS_BY_ID: "/adminlist/:id",
       DELETE_USER: "/delete/:userId",
       UPDATE_USER: "/updateDetailbyid/:userId",
+      UPDATE_USER_BY_ADMIN: "/updateDetailbyAdmin/:userId",
+
 
       // roles
       CREATE_ROLE: "/role/create",
       UPDATE_ROLE: "/role/update/:roleId",
       GET_ROLE: "/role/list",
-      DELETE_ROLE: "/role/delete/:roleId/:updatedBy",
+      DELETE_ROLE: "/role/delete/:roleId",
     },
     RO: {
       CREATE_RO: "/create",
@@ -153,8 +155,9 @@ module.exports.CONSTANTS = {
       // autherrors
       GENDER_ERROR: "Gendre should be male or female or Other",
       VALID_PHONE: "Enter valid Phone Number",
+      USERNAME_EXISTS: "Username already exists",
       EMAIL_EXISTS: "Email Address already exists",
-      PHONE_NO_EXISTS: "Phone number already exists",
+      PHONE_NO_EXISTS: "Contact number already exists",
       VALID_EMAIL: "Please enter valid email",
       NEW_AND_CONFIRM: "New password and Confirm password should be same",
       RESET_TOKEN_EXPIRED: "Reset Token expired",
@@ -266,7 +269,9 @@ module.exports.CONSTANTS = {
   // data table names
   DATA_TABLES: {
     ROLE: "role",
-    USERS: "users",
-    RO: "reasonanalofficer"
+    ADMINS: "admins",
+    SO: "subofficers",
+    CLIENT:"clients",
+    VALUATOR:"valuators",
   },
 };

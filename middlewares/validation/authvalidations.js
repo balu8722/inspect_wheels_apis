@@ -142,7 +142,7 @@ const auth_validation = {
   // validate the get list
   getUserListByIdValidation: async (req, res, next) => {
     try {
-      let data = { ...req.body, ...req.params }
+      let data = { ...req.params }
       await auth_Schema.getUserListById_schema.validate(data)
       // if the schema values are correct
       next()

@@ -43,142 +43,150 @@ const getExpiryDate = (inputDateString, year) => {
 };
 
 //users or subadmin signup
-module.exports.signup = (req, res) => {
+module.exports.signup = async (req, res) => {
     try {
         const {
-            name,
-            email,
-            password,
-            phoneNumber,
-            refferedBy,
-            isAdmin,
-            role,
-            createdBy,
-            gender,
+            name,  email, contact_no, username, password, roleId, gender, address, city, state,
+            country, pincode,dob
         } = req.body;
+        const {id:createdBy}=req.user;
 
-        if (isAdmin) {
-            mySQLInstance.executeQuery(authQueries.isPresent_lab_hospital, [email, phoneNumber, email, phoneNumber]).then((result) => {
-                // console.log("🚀 ~ mySQLInstance.executeQuery ~ result:", result)
-                if (result.length > 0) {
-                    if (result[0].email.toLowerCase() === email.toLowerCase()) {
-                        return returnData(res, 409, `${CONSTANTS.STATUS_MSG.ERROR.EMAIL_EXISTS} in ${result[0].source_table}`)
-                    } else if (result[0].phoneNumber === phoneNumber) {
-                        return returnData(res, 409, `${CONSTANTS.STATUS_MSG.ERROR.PHONE_NO_EXISTS} in ${result[0].source_table}`)
-                    }
-                } else {
-                    bcrypt.hash(password, 9, async (err, hash) => {
-                        if (err) {
-                            saveLoggers(req, err || "");
-                            return serverErrorMsg(res, err.message || '');
-                        } else {
-                            // values to store in user database table
-                            // const userValues = [name, email, phoneNumber, hash, `MDLFL_${phoneNumber}`, refferedBy, presenttimestamp, 1];
-                            const adminValues = [
-                                name,
-                                email,
-                                phoneNumber,
-                                hash,
-                                `MDLFL_ADMIN_${phoneNumber}`,
-                                role,
-                                presenttimestamp(),
-                                1,
-                                createdBy,
-                                gender,
-                            ];
-                            const values = adminValues;
-
-                            // executing the query
-                            mySQLInstance
-                                .executeQuery(authQueries.adminSignUpQuery, values)
-                                .then(async (result) => {
-                                    let payload = {
-                                        to: email,
-                                        subject: "Admin Credentials",
-                                        html: MAIL_HTML_TEMPLATES.SIGNUP_TEMPLATE(email, password),
-                                    };
-                                    await mailService.sendMail(payload);
-                                    return returnData(
-                                        res,
-                                        201,
-                                        CONSTANTS.STATUS_MSG.SUCCESS.ADMIN_REGISTERED
-                                    );
-                                })
-                                .catch((err) => {
-                                    // console.log("🚀 ~ mySQLInstance.executeQuery ~ err:", err)
-                                    saveLoggers(req, err);
-                                    if (err && err.code === "ER_DUP_ENTRY") {
-                                        const duplicateEntryRegex =
-                                            /Duplicate entry '(.*)' for key '(.*)'/;
-                                        const matches = err.message.match(duplicateEntryRegex);
-                                        if (matches && matches.length >= 3) {
-                                            const duplicatedKey = matches[2];
-                                            if (
-                                                duplicatedKey === "email" ||
-                                                duplicatedKey === "email"
-                                            ) {
-                                                return returnData(
-                                                    res,
-                                                    409,
-                                                    CONSTANTS.STATUS_MSG.ERROR.EMAIL_EXISTS
-                                                );
-                                            } else if (
-                                                duplicatedKey === "phoneNumber" ||
-                                                duplicatedKey === "phoneNumber"
-                                            ) {
-                                                return returnData(
-                                                    res,
-                                                    409,
-                                                    CONSTANTS.STATUS_MSG.ERROR.PHONE_NO_EXISTS
-                                                );
-                                            }
-                                        }
-                                    }
-                                    // if any other error occurs
-                                    return serverErrorMsg(res, err?.message);
-                                });
-                        }
-                    });
-                }
-            }).catch(err => {
-                // console.log("🚀 ~ mySQLInstance.executeQuery ~ err:", err)
-                saveLoggers(req, err);
-                return serverErrorMsg(res, err?.message);
-            })
+        let isDuplicateExists=await mySQLInstance.executeQuery(authQueries.isExist_admins_ro_client, [username, email, contact_no])
+            
+        if (isDuplicateExists.length > 0) {
+            if (result[0].email.toLowerCase() === email.toLowerCase()) {
+                return returnData(res, 409, `${CONSTANTS.STATUS_MSG.ERROR.EMAIL_EXISTS} in ${result[0].source_table}`)
+            } else if (result[0].contact_no === contact_no) {
+                return returnData(res, 409, `${CONSTANTS.STATUS_MSG.ERROR.PHONE_NO_EXISTS} in ${result[0].source_table}`)
+            }else if (result[0].username === username) {
+                return returnData(res, 409, `${CONSTANTS.STATUS_MSG.ERROR.USERNAME_EXISTS} in ${result[0].source_table}`)
+            }
         } else {
-            mySQLInstance
-                .executeQuery(authQueries.isCustomerPresent, [email, phoneNumber])
-                .then(async (result) => {
-                    // console.log("🚀 ~ mySQLInstance.executeQuery ~ result:", result)
-                    if (result.length > 0) {
-                        if (result[0].email === email) {
-                            saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.EMAIL_EXISTS);
-                            return returnData(
-                                res,
-                                409,
-                                CONSTANTS.STATUS_MSG.ERROR.EMAIL_EXISTS
-                            );
-                        } else if (result[0].phoneNumber === phoneNumber) {
-                            saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.PHONE_NO_EXISTS);
-                            return returnData(
-                                res,
-                                409,
-                                CONSTANTS.STATUS_MSG.ERROR.PHONE_NO_EXISTS
-                            );
-                        }
-                    }
-                    await OtpHandler.storeNumber(email, false, email, false, true);
+            bcrypt.hash(password, 9, async (err, hash) => {
+                if (err) {
+                    saveLoggers(req, err || "");
+                    return serverErrorMsg(res, err.message || '');
+                } else {
+                   const adminValues = [
+                        name,
+                        email,
+                        contact_no,
+                        username,
+                        hash,
+                        roleId,
+                        gender,
+                        (address||null),(city||null),(state||null),(country||null),(pincode||null),
+                        (dob||null),
+                        createdBy
+                    ];
+
+                    const values = adminValues;
+
+                    let addNewUser=await mySQLInstance.executeQuery(authQueries.adminSignUpQuery, [values])
+                    let payload = {
+                        to: email,
+                        subject: "Admin Credentials",
+                        html: MAIL_HTML_TEMPLATES.SIGNUP_TEMPLATE(username, password),
+                    };
+                    await mailService.sendMail(payload);
                     return returnData(
                         res,
-                        200,
-                        CONSTANTS.STATUS_MSG.SUCCESS.SIGNUP_OTP_EMAIL_SENT
+                        201,
+                        CONSTANTS.STATUS_MSG.SUCCESS.ADMIN_REGISTERED
                     );
-                })
-                .catch((err) => {
-                    saveLoggers(req, err);
-                    return serverErrorMsg(res, err?.message);
-                });
+                   
+                }
+            });
         }
+
+        // mySQLInstance.executeQuery(authQueries.isPresent_lab_hospital, [email, phoneNumber, email, phoneNumber]).then((result) => {
+            //     // console.log("🚀 ~ mySQLInstance.executeQuery ~ result:", result)
+            //     if (result.length > 0) {
+            //         if (result[0].email.toLowerCase() === email.toLowerCase()) {
+            //             return returnData(res, 409, `${CONSTANTS.STATUS_MSG.ERROR.EMAIL_EXISTS} in ${result[0].source_table}`)
+            //         } else if (result[0].phoneNumber === phoneNumber) {
+            //             return returnData(res, 409, `${CONSTANTS.STATUS_MSG.ERROR.PHONE_NO_EXISTS} in ${result[0].source_table}`)
+            //         }
+            //     } else {
+            //         bcrypt.hash(password, 9, async (err, hash) => {
+            //             if (err) {
+            //                 saveLoggers(req, err || "");
+            //                 return serverErrorMsg(res, err.message || '');
+            //             } else {
+            //                 // values to store in user database table
+            //                 // const userValues = [name, email, phoneNumber, hash, `MDLFL_${phoneNumber}`, refferedBy, presenttimestamp, 1];
+            //                 const adminValues = [
+            //                     name,
+            //                     email,
+            //                     phoneNumber,
+            //                     hash,
+            //                     `MDLFL_ADMIN_${phoneNumber}`,
+            //                     role,
+            //                     presenttimestamp(),
+            //                     1,
+            //                     createdBy,
+            //                     gender,
+            //                 ];
+            //                 const values = adminValues;
+
+            //                 // executing the query
+            //                 mySQLInstance
+            //                     .executeQuery(authQueries.adminSignUpQuery, values)
+            //                     .then(async (result) => {
+            //                         let payload = {
+            //                             to: email,
+            //                             subject: "Admin Credentials",
+            //                             html: MAIL_HTML_TEMPLATES.SIGNUP_TEMPLATE(email, password),
+            //                         };
+            //                         await mailService.sendMail(payload);
+            //                         return returnData(
+            //                             res,
+            //                             201,
+            //                             CONSTANTS.STATUS_MSG.SUCCESS.ADMIN_REGISTERED
+            //                         );
+            //                     })
+            //                     .catch((err) => {
+            //                         // console.log("🚀 ~ mySQLInstance.executeQuery ~ err:", err)
+            //                         saveLoggers(req, err);
+            //                         if (err && err.code === "ER_DUP_ENTRY") {
+            //                             const duplicateEntryRegex =
+            //                                 /Duplicate entry '(.*)' for key '(.*)'/;
+            //                             const matches = err.message.match(duplicateEntryRegex);
+            //                             if (matches && matches.length >= 3) {
+            //                                 const duplicatedKey = matches[2];
+            //                                 if (
+            //                                     duplicatedKey === "email" ||
+            //                                     duplicatedKey === "email"
+            //                                 ) {
+            //                                     return returnData(
+            //                                         res,
+            //                                         409,
+            //                                         CONSTANTS.STATUS_MSG.ERROR.EMAIL_EXISTS
+            //                                     );
+            //                                 } else if (
+            //                                     duplicatedKey === "phoneNumber" ||
+            //                                     duplicatedKey === "phoneNumber"
+            //                                 ) {
+            //                                     return returnData(
+            //                                         res,
+            //                                         409,
+            //                                         CONSTANTS.STATUS_MSG.ERROR.PHONE_NO_EXISTS
+            //                                     );
+            //                                 }
+            //                             }
+            //                         }
+            //                         // if any other error occurs
+            //                         return serverErrorMsg(res, err?.message);
+            //                     });
+            //             }
+            //         });
+            //     }
+            // }).catch(err => {
+            //     // console.log("🚀 ~ mySQLInstance.executeQuery ~ err:", err)
+            //     saveLoggers(req, err);
+            //     return serverErrorMsg(res, err?.message);
+            // })
+        
     } catch (err) {
         saveLoggers(req, err);
         return serverErrorMsg(res, err?.message);
@@ -186,16 +194,16 @@ module.exports.signup = (req, res) => {
 };
 
 // admin or user signin
-module.exports._signin = async (req, res) => {
+module.exports.signin = async (req, res) => {
     try {
         // request body
-        const { email_phoneNumber, password, phoneNumber, isAdmin } = req.body;
+        const { username, password } = req.body;
         // console.log("🚀 ~ module.exports.signin= ~ isAdmin:", isAdmin)
-        if (email_phoneNumber) {
+        
             // console.log("🚀 ~ module.exports.signin= ~ query:", query)
-            if (isAdmin) {
-                let adminValues = [email_phoneNumber, email_phoneNumber, email_phoneNumber, email_phoneNumber, email_phoneNumber, email_phoneNumber]
-                const adminResult = await mySQLInstance.executeQuery(authQueries.adminPanelSigninQuery, adminValues)
+            // if (isAdmin) {
+                let adminValues = [username]
+                const adminResult = await mySQLInstance.executeQuery(authQueries.isPresent_admins_ro_client, adminValues)
                 // console.log("🚀 ~ module.exports._signin= ~ adminResult:", adminResult)
                 if (adminResult.length < 1) {
                     saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.USER_NOT_FOUND);
@@ -206,8 +214,6 @@ module.exports._signin = async (req, res) => {
                     );
                 }
                 let user = adminResult[0];
-                // console.log("🚀 ~ awaitmySQLInstance.executeQuery ~ user:", user)
-
                 let _user = { ...user };
                 delete _user.password;
 
@@ -234,11 +240,8 @@ module.exports._signin = async (req, res) => {
                          */
                         const userDataString = JSON.stringify({
                             id: user.id,
-                            email: user.email,
-                            phoneNumber: user.phoneNumber,
-                            role: user.sourcetable === "admins" ? user.role : "",
-                            accountId: user.accountId,
-                            sourcetable: user.sourcetable
+                            roleId: user.source_table === CONSTANTS.DATA_TABLES.ADMINS ? user.roleId : null,
+                            source_table: user.source_table
                         });
                         const encryptedData = encryptData(userDataString);
                         // token generated
@@ -257,15 +260,15 @@ module.exports._signin = async (req, res) => {
                             ..._user,
                             token: token,
                             refreshtoken: refereshtoken,
-                            role: user.sourcetable === "admins" ? user.role : "",
+                            roleId: user.source_table === CONSTANTS.DATA_TABLES.ADMINS ? user.roleId :null,
                         };
 
-                        if (user.sourcetable === "admins") {
-                            const roleResult = await mySQLInstance.executeQuery(authQueries.GET_ROLELIST_BY_ID, [user.role])
+                        if (user.source_table === CONSTANTS.DATA_TABLES.ADMINS) {
+                            const roleResult = await mySQLInstance.executeQuery(authQueries.GET_ROLELIST_BY_ID, [user.roleId])
                             // console.log("🚀 ~ roleResult:", roleResult[0])
                             data = {
                                 ...data, featurePermissions: roleResult?.[0]?.featurePermissions || "",
-                                roleName: roleResult?.[0]?.roleName || ""
+                                roleName: roleResult?.[0]?.name || ""
                             }
                         }
 
@@ -277,112 +280,7 @@ module.exports._signin = async (req, res) => {
                         );
                     }
                 );
-            } else {
-                const query = authQueries.isUserPresent(isAdmin);
-                await mySQLInstance
-                    .executeQuery(query, [email_phoneNumber, email_phoneNumber])
-                    .then((result) => {
-                        // console.log("🚀 ~ awaitmySQLInstance.executeQuery ~ result:", result)
-                        if (result.length < 1) {
-                            saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.USER_NOT_FOUND);
-                            return returnData(
-                                res,
-                                404,
-                                CONSTANTS.STATUS_MSG.ERROR.USER_NOT_FOUND
-                            );
-                        }
 
-                        let user = result[0];
-                        // console.log("🚀 ~ awaitmySQLInstance.executeQuery ~ user:", user)
-
-                        let _user = { ...user };
-                        delete _user.password;
-                        // console.log("🚀 ~ awaitmySQLInstance.executeQuery ~ user:", user)
-
-                        bcrypt.compare(
-                            password,
-                            user.password,
-                            (bcryptErr, isPasswordValid) => {
-                                if (bcryptErr) {
-                                    saveLoggers(req, bcryptErr);
-                                    return serverErrorMsg(res, err?.message);
-                                }
-                                if (!isPasswordValid) {
-                                    // if password is wrong, throw error
-                                    saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.INVALID_PASSWORD);
-                                    return returnData(
-                                        res,
-                                        401,
-                                        CONSTANTS.STATUS_MSG.ERROR.INVALID_PASSWORD
-                                    );
-                                }
-
-                                /**
-                                 * encrypting the userdetails to generate the token
-                                 */
-                                const userDataString = JSON.stringify({
-                                    id: user.id,
-                                    email: user.email,
-                                    phoneNumber: user.phoneNumber,
-                                    role: isAdmin ? user.role : "user",
-                                    accountId: user.accountId,
-                                });
-                                const encryptedData = encryptData(userDataString);
-                                // token generated
-                                var token = jwt.sign({ encryptedData }, ENV_DATA.JWT_SECRET_KEY, {
-                                    expiresIn: ENV_DATA.CUSTOMER_ACCESS_TOKEN_EXPIRY_TIME,
-                                });
-
-                                let data = {
-                                    ..._user,
-                                    dob: convertDateFormat(_user.dob),
-                                    token: token,
-                                    role: "user",
-                                };
-                                return returnData(
-                                    res,
-                                    200,
-                                    CONSTANTS.STATUS_MSG.SUCCESS.LOGIN,
-                                    data
-                                );
-                            }
-                        );
-                    })
-                    .catch((err) => {
-                        saveLoggers(req, err);
-                        return serverErrorMsg(res, err?.message);
-                    });
-            }
-
-        } else {
-            await mySQLInstance
-                .executeQuery(authQueries.isUserPresent(false), ["", phoneNumber])
-                .then(async (result) => {
-                    // console.log("🚀 ~ awaitmySQLInstance.executeQuery ~ result:", result)
-                    if (result.length < 1) {
-                        saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.USER_NOT_FOUND);
-                        return returnData(
-                            res,
-                            404,
-                            CONSTANTS.STATUS_MSG.ERROR.USER_NOT_FOUND
-                        );
-                    }
-
-                    let user = result[0];
-                    // sending otp to mail
-                    await OtpHandler.storeNumber(phoneNumber, false, user.email, false);
-
-                    return returnData(
-                        res,
-                        200,
-                        CONSTANTS.STATUS_MSG.SUCCESS.LOGIN_OTP_EMAIL_SENT
-                    );
-                })
-                .catch((err) => {
-                    saveLoggers(req, err);
-                    return serverErrorMsg(res, err.message);
-                });
-        }
     } catch (err) {
         // console.log("🚀 ~ module.exports._signin= ~ err:", err)
         saveLoggers(req, err || "");
@@ -712,7 +610,7 @@ module.exports.resetPassword = async (req, res) => {
                         saveLoggers(req, err.message || "");
                         return serverErrorMsg(res, err?.message);
                     }
-                    const updateQuery = authQueries.updateAdminPasswordQuery(user.sourcetable);
+                    const updateQuery = authQueries.updateAdminPasswordQuery(user.source_table);
                     const updateValues = [hash, presenttimestamp(), user.email];
 
                     mySQLInstance
@@ -814,7 +712,7 @@ module.exports.changePassword = async (req, res) => {
                         saveLoggers(req, err.message || "");
                         return serverErrorMsg(res, err?.message);
                     }
-                    const updateQuery = authQueries.updateAdminPasswordQuery(user.sourcetable);
+                    const updateQuery = authQueries.updateAdminPasswordQuery(user.source_table);
                     const updateValues = [hash, presenttimestamp(), user.email];
 
                     mySQLInstance
@@ -846,113 +744,39 @@ module.exports.changePassword = async (req, res) => {
 };
 
 
-// update the user or admin Details
-module.exports.updateUsersDetails = async (req, res) => {
+// update the user or admin Details by users
+module.exports.updateAdminsDetails = async (req, res) => {
     try {
         const {
-            name,
-            role,
-            isAdmin,
-            houseno,
-            buildingno,
-            pincode,
-            state,
-            district,
-            city,
-            location,
-            locationlatlng,
-            gender,
-            dob,
-            email,
-            phoneNumber,
+            name, gender, address, city, state,
+            country, pincode,dob
         } = req.body;
         const { userId } = req.params;
-        const { tokenresult } = req.decodedToken;
-        // console.log("🚀 ~ module.exports.updateUsersDetails= ~ tokenresult:", tokenresult)
+        const { id:updatedBy } = req.user;
+        
 
-        const updateQuery = isAdmin
-            ? authQueries.updateAdminDetailQuery
-            : authQueries.updateUserDetailQuery;
-        const updateValues = isAdmin
-            ? [
+        const updateQuery =  authQueries.updateAdminDetailQuery;
+        const updateValues =  [
                 name,
-                role,
-                houseno,
-                buildingno,
-                pincode,
-                state,
-                district,
-                city,
-                location,
-                locationlatlng,
-                presenttimestamp(),
-                gender || "",
-                dob || null,
-                tokenresult[0].accountId,
-                email,
-                phoneNumber,
-                parseInt(userId),
-            ]
-            : [
-                name,
-                houseno,
-                buildingno,
-                pincode || null,
-                state,
-                district,
-                city,
-                location,
-                locationlatlng,
-                presenttimestamp(),
-                gender || null,
-                dob || null,
-                tokenresult[0].accountId,
-                parseInt(userId),
+                (address||null),(city||null),(state||null),(country||null),(pincode||null),
+                gender,
+                (dob||null),
+                updatedBy,presenttimestamp(),
+                Number(userId)
             ];
+            
 
-        mySQLInstance
-            .executeQuery(updateQuery, updateValues)
-            .then((result) => {
-                // console.log("🚀 ~ mySQLInstance.executeQuery ~ result:", result)
-                if (result.affectedRows < 1) {
-                    saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.USER_NOT_FOUND);
-                    return returnData(
-                        res,
-                        404,
-                        CONSTANTS.STATUS_MSG.ERROR.USER_NOT_FOUND
-                    );
-                }
-                return returnData(res, 200, CONSTANTS.STATUS_MSG.SUCCESS.DATA_UPDATED);
-            })
-            .catch((err) => {
-                // console.log("🚀 ~ mySQLInstance.executeQuery ~ err:", err)
-                saveLoggers(req, err || "");
-                if (err && err.code === "ER_DUP_ENTRY") {
-                    const duplicateEntryRegex = /Duplicate entry '(.*)' for key '(.*)'/;
-                    const matches = err.message.match(duplicateEntryRegex);
-                    if (matches && matches.length >= 3) {
-                        const duplicatedKey = matches[2];
-                        if (
-                            duplicatedKey === "email"
-                        ) {
-                            return returnData(
-                                res,
-                                409,
-                                CONSTANTS.STATUS_MSG.ERROR.EMAIL_EXISTS
-                            );
-                        } else if (
-                            duplicatedKey === "phoneNumber"
-                        ) {
-                            return returnData(
-                                res,
-                                409,
-                                CONSTANTS.STATUS_MSG.ERROR.PHONE_NO_EXISTS
-                            );
-                        }
-                    }
-                }
-                return serverErrorMsg(res, err?.message);
-            });
+        let updateResult=await mySQLInstance.executeQuery(updateQuery, updateValues)
+
+        if (updateResult.affectedRows < 1) {
+            saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.ADMIN_NOT_FOUND);
+            return returnData(
+                res,
+                404,
+                CONSTANTS.STATUS_MSG.ERROR.ADMIN_NOT_FOUND
+            );
+        }
+        return returnData(res, 200, CONSTANTS.STATUS_MSG.SUCCESS.DATA_UPDATED);
     } catch (err) {
         saveLoggers(req, err || "");
         return serverErrorMsg(res, err?.message);
@@ -960,30 +784,24 @@ module.exports.updateUsersDetails = async (req, res) => {
 };
 
 // get admin or users list
-module.exports.getUsersList = async (req, res) => {
+module.exports.getAdminsList = async (req, res) => {
     try {
-        const { isAdmin } = req.body;
-        const getUsersListQuery = isAdmin
-            ? authQueries.adminList
-            : authQueries.userList;
-        mySQLInstance
-            .executeQuery(getUsersListQuery)
-            .then((result) => {
-                // console.log("🚀 ~ mySQLInstance.executeQuery ~ result:", result)
-                if (result.length < 1) {
-                    return returnData(res, 404, CONSTANTS.STATUS_MSG.ERROR.NO_DATA_FOUND);
-                }
-                return returnData(
-                    res,
-                    200,
-                    CONSTANTS.STATUS_MSG.SUCCESS.DATA_FOUND,
-                    result
-                );
-            })
-            .catch((err) => {
-                saveLoggers(req, err.message || "");
-                return serverErrorMsg(res, err?.message);
-            });
+        const getUsersListQuery = authQueries.adminListQuery;
+        let list =await mySQLInstance.executeQuery(getUsersListQuery)
+        if (list.length < 1) {
+            return returnData(res, 404, CONSTANTS.STATUS_MSG.ERROR.NO_DATA_FOUND);
+        }
+        let _list= list.map((item) => {
+            let user = { ...item };
+            delete user.password;
+            return user;
+        })
+        return returnData(
+            res,
+            200,
+            CONSTANTS.STATUS_MSG.SUCCESS.DATA_FOUND,
+            _list
+        );
     } catch (err) {
         saveLoggers(req, err.message || "");
         return serverErrorMsg(res, err?.message);
@@ -993,30 +811,20 @@ module.exports.getUsersList = async (req, res) => {
 // get admin or users list
 module.exports.getUsersListById = async (req, res) => {
     try {
-        const { isAdmin } = req.body;
         const { id } = req.params;
 
-        const getUsersListQuery = isAdmin
-            ? authQueries.adminListById
-            : authQueries.userListById;
-        mySQLInstance
-            .executeQuery(getUsersListQuery, [id])
-            .then((result) => {
-                // console.log("🚀 ~ mySQLInstance.executeQuery ~ result:", result)
-                if (result.length < 1) {
-                    return returnData(res, 404, CONSTANTS.STATUS_MSG.ERROR.NO_DATA_FOUND);
-                }
-                return returnData(
-                    res,
-                    200,
-                    CONSTANTS.STATUS_MSG.SUCCESS.DATA_FOUND,
-                    result
-                );
-            })
-            .catch((err) => {
-                saveLoggers(req, err);
-                return serverErrorMsg(res, err.message);
-            });
+        const getUsersListQuery = authQueries.adminListQueryById;
+        let detailsResult=await mySQLInstance.executeQuery(getUsersListQuery, [id])
+        if (detailsResult.length < 1) {
+            return returnData(res, 404, CONSTANTS.STATUS_MSG.ERROR.NO_DATA_FOUND);
+        }
+        const {password, ...userDetails} = detailsResult[0]
+        return returnData(
+            res,
+            200,
+            CONSTANTS.STATUS_MSG.SUCCESS.DATA_FOUND,
+            [userDetails]
+        );
     } catch (err) {
         saveLoggers(req, err);
         return serverErrorMsg(res, err.message);
@@ -1024,35 +832,29 @@ module.exports.getUsersListById = async (req, res) => {
 };
 
 // delete the users
-module.exports.deleteUsersOrAdmin = async (req, res) => {
+module.exports.deleteAdmins = async (req, res) => {
     try {
         const { userId } = req.params;
-        const { isAdmin } = req.body;
-        const { tokenresult } = req.decodedToken;
+        const { roleId,id:updatedBy } = req.user;
         // console.log("🚀 ~ module.exports.deleteUsersOrAdmin ~ tokenresult:", tokenresult)
+        if((roleId!=1)|| (userId==1)){
+            saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.UNAUTHORIZED);
+            return returnData(res, 403, CONSTANTS.STATUS_MSG.ERROR.UNAUTHORIZED);
+        }
 
-        const deleteQuery = isAdmin
-            ? authQueries.deleteAdmin_User(CONSTANTS.DATA_TABLES.ADMINS)
-            : authQueries.deleteAdmin_User(CONSTANTS.DATA_TABLES.USERS);
-        let values = [0, presenttimestamp(), tokenresult[0].accountId, userId];
+        const deleteQuery = authQueries.deleteAdmin_User(CONSTANTS.DATA_TABLES.ADMINS)
+        let values = [presenttimestamp(), updatedBy, userId];
 
-        mySQLInstance
-            .executeQuery(deleteQuery, values)
-            .then((result) => {
-                if (result.affectedRows < 1) {
-                    saveLoggers(req, isAdmin ? CONSTANTS.STATUS_MSG.ERROR.ADMIN_NOT_FOUND : CONSTANTS.STATUS_MSG.ERROR.USER_NOT_FOUND);
-                    return returnData(
-                        res,
-                        404,
-                        isAdmin ? CONSTANTS.STATUS_MSG.ERROR.ADMIN_NOT_FOUND : CONSTANTS.STATUS_MSG.ERROR.USER_NOT_FOUND
-                    );
-                }
-                return returnData(res, 200, isAdmin ? CONSTANTS.STATUS_MSG.SUCCESS.ADMIN_DELETED : CONSTANTS.STATUS_MSG.SUCCESS.USER_DELETED);
-            })
-            .catch((err) => {
-                saveLoggers(req, err);
-                return serverErrorMsg(res, err?.message);
-            });
+        let deleteUser=await mySQLInstance.executeQuery(deleteQuery, values)
+        if (deleteUser.affectedRows < 1) {
+            saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.ADMIN_NOT_FOUND);
+            return returnData(
+                res,
+                404,
+               CONSTANTS.STATUS_MSG.ERROR.ADMIN_NOT_FOUND 
+            );
+        }
+        return returnData(res, 200, CONSTANTS.STATUS_MSG.SUCCESS.ADMIN_DELETED);            
     } catch (err) {
         saveLoggers(req, err || "");
         return serverErrorMsg(res, err?.message);
@@ -1087,44 +889,40 @@ module.exports.refreshtoken = async (req, res) => {
 // create roles
 module.exports.createRole = async (req, res) => {
     try {
-        const { roleName, featurePermissions, createdBy } = req.body;
+        const { name, featurePermissions } = req.body;
+        const {id: createdBy} = req.user;
 
-        mySQLInstance.executeQuery(authQueries._isRoleName_Exists).then(async (result) => {
-            let _roleName = await result.filter(item => {
-                return splitMergeString(item.roleName) === splitMergeString(roleName)
-            })
-            // console.log("🚀 ~ mySQLInstance.executeQuery ~ _roleName:", _roleName)
-            if (_roleName?.[0]?.status === 0) {
-                const reactivateValues = [
-                    roleName.trim(),
-                    featurePermissions,
-                    createdBy,
-                    presenttimestamp(),
-                    _roleName[0].roleId,
-                ];
-                let reactivateRole = await mySQLInstance.executeQuery(
-                    authQueries.reactivate_Rolename,
-                    reactivateValues
-                );
-                return returnData(res, 201, CONSTANTS.STATUS_MSG.SUCCESS.ROLE_CREATED);
-            } else if (_roleName?.[0]?.status === 1) {
-                saveLoggers(res, CONSTANTS.STATUS_MSG.ERROR.ROLENAME_EXISTS)
-                return returnData(res, 409, CONSTANTS.STATUS_MSG.ERROR.ROLENAME_EXISTS)
-            } else {
-                const values = [
-                    roleName.trim(),
-                    featurePermissions,
-                    createdBy,
-                    presenttimestamp(),
-                    1,
-                ];
-                await mySQLInstance.executeQuery(authQueries.create_Role, values);
-                return returnData(res, 201, CONSTANTS.STATUS_MSG.SUCCESS.ROLE_CREATED);
-            }
-        }).catch(err => {
-            // console.log("🚀 ~ mySQLInstance.executeQuery ~ err:", err)
-            return _serverErrorMsg(res, err?.message)
+        let result=await mySQLInstance.executeQuery(authQueries._isRoleName_Exists)
+
+        let _roleName = await result.filter(item => {
+            return splitMergeString(item.name) === splitMergeString(name)
         })
+        // console.log("🚀 ~ mySQLInstance.executeQuery ~ _roleName:", _roleName)
+        if (_roleName?.[0]?.status === 0) {
+            const reactivateValues = [
+                name.trim(),
+                featurePermissions,
+                createdBy,
+                presenttimestamp(),
+                _roleName[0].id,
+            ];
+            let reactivateRole = await mySQLInstance.executeQuery(
+                authQueries.reactivate_Rolename,
+                reactivateValues
+            );
+            return returnData(res, 201, CONSTANTS.STATUS_MSG.SUCCESS.ROLE_CREATED);
+        } else if (_roleName?.[0]?.status === 1) {
+            saveLoggers(res, CONSTANTS.STATUS_MSG.ERROR.ROLENAME_EXISTS)
+            return returnData(res, 409, CONSTANTS.STATUS_MSG.ERROR.ROLENAME_EXISTS)
+        } else {
+            const values = [
+                name.trim(),
+                featurePermissions,
+                createdBy
+            ];
+            await mySQLInstance.executeQuery(authQueries.create_Role, values);
+            return returnData(res, 201, CONSTANTS.STATUS_MSG.SUCCESS.ROLE_CREATED);
+        }
     } catch (err) {
         saveLoggers(req, err);
         if (err && err.code === "ER_DUP_ENTRY") {
@@ -1138,47 +936,37 @@ module.exports.createRole = async (req, res) => {
 module.exports.updateRole = async (req, res) => {
     try {
         const { roleId } = req.params;
-        const { roleName, featurePermissions, updatedBy } = req.body;
-        // let _roleName = roleName.trim().toLowerCase();
+        const { name, featurePermissions } = req.body;
+        const {id:updatedBy}=req.user
 
+        const isRoleExist=await mySQLInstance.executeQuery(authQueries._isRole_Exists,[roleId])
+            if(isRoleExist.length<1){
+                saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.ROLE_NOT_FUND)  
+                return returnData(res, 404, CONSTANTS.STATUS_MSG.ERROR.ROLE_NOT_FUND)
+            }
         const _nameExists = await mySQLInstance.executeQuery(authQueries._isUpdateRoleName_Exists, [roleId])
-        // console.log("🚀 ~ module.exports.updateRole= ~ _nameExists:", _nameExists)
-
+        
         let _roleName = _nameExists.filter(item => {
-            return splitMergeString(item.roleName) === splitMergeString(roleName)
+            return splitMergeString(item.name) === splitMergeString(name)
         })
-        // console.log("🚀 ~ module.exports.updateRole= ~ _roleName:", _roleName)
+        
         if (_roleName.length > 0) {
             saveLoggers(res, CONSTANTS.STATUS_MSG.ERROR.ROLENAME_EXISTS)
             return returnData(res, 409, CONSTANTS.STATUS_MSG.ERROR.ROLENAME_EXISTS)
         }
         const values = [
-            roleName.trim(),
+            name.trim(),
             featurePermissions,
             updatedBy,
             presenttimestamp(),
             roleId,
         ];
-        mySQLInstance
-            .executeQuery(authQueries.update_Role, values)
-            .then((result) => {
-                if (result.affectedRows < 1) {
-                    saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.ROLE_NOT_FUND);
-                    return returnData(res, 404, CONSTANTS.STATUS_MSG.ERROR.ROLE_NOT_FUND);
-                }
-                return returnData(res, 200, CONSTANTS.STATUS_MSG.SUCCESS.ROLE_UPDATED);
-            })
-            .catch((err) => {
-                saveLoggers(req, err);
-                if (err && err.code === "ER_DUP_ENTRY") {
-                    return returnData(
-                        res,
-                        409,
-                        CONSTANTS.STATUS_MSG.ERROR.ROLENAME_EXISTS
-                    );
-                }
-                return serverErrorMsg(res, err.message);
-            });
+        let result = await mySQLInstance.executeQuery(authQueries.update_Role, values)
+        if (result.affectedRows < 1) {
+            saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.ROLE_NOT_FUND);
+            return returnData(res, 404, CONSTANTS.STATUS_MSG.ERROR.ROLE_NOT_FUND);
+        }
+        return returnData(res, 200, CONSTANTS.STATUS_MSG.SUCCESS.ROLE_UPDATED);
     } catch (err) {
         // console.log("🚀 ~ module.exports.createRole= ~ err:", err)
         saveLoggers(req, err);
@@ -1218,38 +1006,31 @@ module.exports.getRoleList = async (req, res) => {
 // delete the roles
 module.exports.deleterole = async (req, res) => {
     try {
-        const { roleId, updatedBy } = req.params;
-        // console.log("🚀 ~ module.exports.deleterole ~ roleId:", roleId)
+        const { roleId } = req.params;
+        const { id: updatedBy } = req.user;
 
         if (roleId === "1") {
-            saveLoggers(req, err);
+            saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.NOT_AUTHORIZED);
             return returnData(res, 401, CONSTANTS.STATUS_MSG.ERROR.NOT_AUTHORIZED);
         } else {
             let values = [updatedBy, presenttimestamp(), roleId];
 
-            mySQLInstance
-                .executeQuery(authQueries.DELETE_ROLE, values)
-                .then(async (result) => {
-                    if (result.affectedRows < 1) {
-                        saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.NO_DATA_FOUND);
-                        return returnData(
-                            res,
-                            404,
-                            CONSTANTS.STATUS_MSG.ERROR.ROLE_NOT_FUND
-                        );
-                    }
-                    const result2 = await mySQLInstance.executeQuery(authQueries.REMOVE_ROLE_ID, [roleId])
-                    return returnData(
-                        res,
-                        200,
-                        CONSTANTS.STATUS_MSG.SUCCESS.ROLE_DELETED
-                    );
-                })
-                .catch((err) => {
-                    // console.log("🚀 ~ mySQLInstance.executeQuery ~ err:", err)
-                    saveLoggers(req, err);
-                    return serverErrorMsg(res, err?.message);
-                });
+            let deleteRole = await mySQLInstance.executeQuery(authQueries.DELETE_ROLE, values)
+
+            if (deleteRole.affectedRows < 1) {
+                saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.NO_DATA_FOUND);
+                return returnData(
+                    res,
+                    404,
+                    CONSTANTS.STATUS_MSG.ERROR.ROLE_NOT_FUND
+                );
+            }
+            const result2 = await mySQLInstance.executeQuery(authQueries.REMOVE_ROLE_ID, [roleId])
+            return returnData(
+                res,
+                200,
+                CONSTANTS.STATUS_MSG.SUCCESS.ROLE_DELETED
+            );
         }
     } catch (err) {
         // console.log("🚀 ~ module.exports.deleterole ~ err:", err)
@@ -1261,9 +1042,11 @@ module.exports.deleterole = async (req, res) => {
 // create user from admin only
 module.exports.userSignup = async (req, res) => {
     try {
-        const { name, email, password, phoneNumber, organizationId } = req.body;
+        const { name, email,contact_no,username, password, roleId,address,city,state,pincode,country } = req.body;
         // console.log("🚀 ~ module.exports.userSignup= ~ organizationId:", organizationId)
         const { tokenresult } = req.decodedToken;
+
+        let isDuplicateFieldsExist=await mySQLInstance.executeQuery(authQueries.isExist_admins_ro_client,[username,email,contact_no])
 
         bcrypt.hash(password, 9, async (err, hash) => {
             if (err) {
@@ -1337,8 +1120,7 @@ module.exports.userSignup = async (req, res) => {
             }
         });
     } catch (err) {
-        saveLoggers(req, err.message || "");
-        return serverErrorMsg(res, err?.message);
+        return _serverErrorMsg(res, err?.message)
     }
 };
 
@@ -1366,54 +1148,47 @@ module.exports.getUsersListForAdmins = async (req, res) => {
 module.exports.updateUsersDetailsByAdmin = async (req, res) => {
     try {
         const {
-            name,
-            role,
-            isAdmin,
-            houseno,
-            buildingno,
-            pincode,
-            state,
-            district,
-            city,
-            location,
-            locationlatlng,
-            gender,
-            dob,
-            email,
-            phoneNumber,
-            organizationId
+            name, gender, address, city, state,email,contact_no,
+            country, pincode,dob
         } = req.body;
         const { userId } = req.params;
-        const { tokenresult } = req.decodedToken;
+        const { roleId,id:updatedBy } = req.user;
 
+        let isUserExists=await mySQLInstance.executeQuery(authQueries.isAdminuserPresent,[userId])
+
+
+        if(isUserExists.length<1){
+            saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.ADMIN_NOT_FOUND)
+            return returnData(res, 404, CONSTANTS.STATUS_MSG.ERROR.ADMIN_NOT_FOUND)
+        }
+
+        let isDuplicateFieldsExist=await mySQLInstance.executeQuery(authQueries.isExist_email_contact_no,[email,contact_no,userId])
+        if (isDuplicateFieldsExist.length > 0) {
+            if (result[0].email.toLowerCase() === email.toLowerCase()) {
+                return returnData(res, 409, `${CONSTANTS.STATUS_MSG.ERROR.EMAIL_EXISTS} in ${result[0].source_table}`)
+            } else if (result[0].contact_no === contact_no) {
+                return returnData(res, 409, `${CONSTANTS.STATUS_MSG.ERROR.PHONE_NO_EXISTS} in ${result[0].source_table}`)
+            }
+        }
+
+        const updateQuery = authQueries.updateUserDetailByAdminQuery
         const updateValues = [
-            name,
-            houseno,
-            buildingno,
-            pincode || null,
-            state,
-            district,
-            city,
-            location,
-            locationlatlng,
-            presenttimestamp(),
-            gender || null,
-            dob || null,
-            tokenresult[0].accountId,
-            email,
-            phoneNumber,
-            organizationId || null,
-            parseInt(userId),
-        ];
+                name,
+                email,
+                contact_no,
+                roleId,
+                gender,
+                (address||null),(city||null),(state||null),(country||null),(pincode||null),
+                (dob||null),
+                updatedBy,presenttimestamp(),
+                userId
+            ]
 
-        const result = await mySQLInstance.executeQuery(
-            authQueries.updateUserDetailByAdminQuery,
-            updateValues
-        );
+        const result = await mySQLInstance.executeQuery(updateQuery, updateValues);
         // console.log("🚀 ~ mySQLInstance.executeQuery ~ result:", result)
         if (result.affectedRows < 1) {
-            saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.USER_NOT_FOUND);
-            return returnData(res, 404, CONSTANTS.STATUS_MSG.ERROR.USER_NOT_FOUND);
+            saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.ADMIN_NOT_FOUND);
+            return returnData(res, 404, CONSTANTS.STATUS_MSG.ERROR.ADMIN_NOT_FOUND);
         }
         return returnData(res, 200, CONSTANTS.STATUS_MSG.SUCCESS.DATA_UPDATED);
     } catch (err) {
@@ -1642,373 +1417,6 @@ function generateRandomString() {
     return randomString;
 }
 
-//create organization
-// module.exports.createOrg = async (req, res) => {
-//     try {
-//         const org = req.body;
-//         const org_name = org.oraganizationName;
-//         let _orgName = org_name.trim().toLowerCase();
-
-//         org.createdAt = presenttimestamp();
-//         org.createdBy = req.decodedToken.tokenresult[0].accountId;
-
-//         const result = await mySQLInstance.executeQuery(authQueries.isOrgName_Exists, [_orgName])
-//         if (result[0].count == 0) {
-//             await mySQLInstance.executeQuery(authQueries.create_org, org)
-//             return returnData(
-//                 res,
-//                 201,
-//                 CONSTANTS.STATUS_MSG.SUCCESS.ORG_CREATED
-//             );
-//         } else {
-//             return returnData(
-//                 res,
-//                 409,
-//                 CONSTANTS.STATUS_MSG.ERROR.ORGANIZATION_EXISTS
-//             );
-//         }
-//     } catch (err) {
-//         // console.log("🚀 ~ module.exports.createRole= ~ err:", err);
-//         saveLoggers(req, err);
-//         if (err && err.code === "ER_DUP_ENTRY") {
-//             const duplicateEntryRegex =
-//                 /Duplicate entry '(.*)' for key '(.*)'/;
-//             const matches = err.message.match(duplicateEntryRegex);
-//             if (matches && matches.length >= 3) {
-//                 const duplicatedKey = matches[2];
-//                 if (
-//                     duplicatedKey === "contactPersonEmail" ||
-//                     duplicatedKey === "email"
-//                 ) {
-//                     return returnData(
-//                         res,
-//                         409,
-//                         CONSTANTS.STATUS_MSG.ERROR.EMAIL_EXISTS
-//                     );
-//                 } else if (
-//                     duplicatedKey === "contactPersonPhone" ||
-//                     duplicatedKey === "phoneNumber"
-//                 ) {
-//                     return returnData(
-//                         res,
-//                         409,
-//                         CONSTANTS.STATUS_MSG.ERROR.PHONE_NO_EXISTS
-//                     );
-//                 }
-//             }
-//         }
-//         return serverErrorMsg(res, err.message);
-//     }
-// };
-module.exports.createOrg = async (req, res) => {
-    try {
-        const { tokenresult } = req.decodedToken
-        const org = { ...req.body };
-        const org_name = org.oraganizationName;
-        let _orgName = org_name.trim().toLowerCase();
-
-        org.createdAt = presenttimestamp();
-        org.createdBy = req.decodedToken.tokenresult[0].accountId;
-        let _org = { ...org }
-        // if (req.body.paymentstatus === "pending") {
-        delete _org.paymentamount
-        delete _org.transactionid
-        // }
-        const result = await mySQLInstance.executeQuery(authQueries.isOrgName_Exists, [_orgName])
-        if (result[0].count == 0) {
-            const createOrg = await mySQLInstance.executeQuery(authQueries.create_org, _org)
-            console.log("🚀 ~ module.exports.createOrg= ~ createOrg:", createOrg)
-            let orgName = createOrg[2][0]
-            if (req.body.paymentstatus === "success") {
-                const transValues = [
-                    orgName.organizationID,
-                    org.paymentamount,
-                    presenttimestamp(),
-                    org.transactionid,
-                    presenttimestamp(),
-                    getExpiryDate(presenttimestamp(), 1),
-                    "active",
-                    org.paymentstatus,
-                    tokenresult[0].accountId,
-                    0,
-                ];
-
-                const createpaymentDetails = await mySQLInstance.executeQuery(
-                    `${authQueries.insert_orgcard_transaction}`,
-                    [transValues]
-                );
-            }
-            return returnData(
-                res,
-                201,
-                CONSTANTS.STATUS_MSG.SUCCESS.ORG_CREATED
-            );
-        } else {
-            return returnData(
-                res,
-                409,
-                CONSTANTS.STATUS_MSG.ERROR.ORGANIZATION_EXISTS
-            );
-        }
-    } catch (err) {
-        // console.log("🚀 ~ module.exports.createRole= ~ err:", err);
-        saveLoggers(req, err);
-        if (err && err.code === "ER_DUP_ENTRY") {
-            const duplicateEntryRegex =
-                /Duplicate entry '(.*)' for key '(.*)'/;
-            const matches = err.message.match(duplicateEntryRegex);
-            if (matches && matches.length >= 3) {
-                const duplicatedKey = matches[2];
-                if (
-                    duplicatedKey === "contactPersonEmail" ||
-                    duplicatedKey === "email"
-                ) {
-                    return returnData(
-                        res,
-                        409,
-                        CONSTANTS.STATUS_MSG.ERROR.EMAIL_EXISTS
-                    );
-                } else if (
-                    duplicatedKey === "contactPersonPhone" ||
-                    duplicatedKey === "phoneNumber"
-                ) {
-                    return returnData(
-                        res,
-                        409,
-                        CONSTANTS.STATUS_MSG.ERROR.PHONE_NO_EXISTS
-                    );
-                }
-            }
-        }
-        return serverErrorMsg(res, err.message);
-    }
-};
-
-module.exports.updateOrg = async (req, res) => {
-    try {
-        const { tokenresult } = req.decodedToken
-        const org = req.body;
-        const id = req.params.id;
-        const org_name = org.oraganizationName;
-        let _orgName = org_name.trim().toLowerCase();
-
-        org.updatedAt = presenttimestamp();
-        org.updatedBy = req.decodedToken.tokenresult[0].accountId;
-        const result = await mySQLInstance
-            .executeQuery(authQueries.isOrg_Exists, [id])
-        // console.log("🚀 ~ module.exports.updateOrg= ~ result:", result)
-
-        if (result[0].count > 0) {
-            const result2 = await mySQLInstance
-                .executeQuery(authQueries.isOrgName_Exists_table, [_orgName, id])
-            if (result2[0].count == 0) {
-                let _org = { ...org }
-                delete _org.paymentamount
-                delete _org.transactionid
-                await mySQLInstance.executeQuery(authQueries.update_org, [_org, id])
-                if (result[0].paymentstatus !== "success" && req.body.paymentstatus === "success") {
-                    const transValues = [
-                        result[0].organizationID,
-                        org.paymentamount || null,
-                        presenttimestamp(),
-                        org.transactionid,
-                        presenttimestamp(),
-                        getExpiryDate(presenttimestamp(), 1),
-                        "active",
-                        org.paymentstatus,
-                        tokenresult[0].accountId,
-                        0,
-                    ];
-
-                    const createpaymentDetails = await mySQLInstance.executeQuery(
-                        `${authQueries.insert_orgcard_transaction}`,
-                        [transValues]
-                    );
-                }
-                return returnData(
-                    res,
-                    200,
-                    CONSTANTS.STATUS_MSG.SUCCESS.ORG_UPDATED
-                );
-            } else {
-                return returnData(
-                    res,
-                    409,
-                    CONSTANTS.STATUS_MSG.ERROR.ORGANIZATION_EXISTS
-                );
-            }
-        } else {
-            return returnData(
-                res,
-                409,
-                CONSTANTS.STATUS_MSG.ERROR.INVALID_ORG_ID
-            );
-        }
-    } catch (err) {
-        // console.log("🚀 ~ module.exports.createRole= ~ err:", err);
-        saveLoggers(req, err);
-        if (err && err.code === "ER_DUP_ENTRY") {
-            const duplicateEntryRegex =
-                /Duplicate entry '(.*)' for key '(.*)'/;
-            const matches = err.message.match(duplicateEntryRegex);
-            if (matches && matches.length >= 3) {
-                const duplicatedKey = matches[2];
-                if (
-                    duplicatedKey === "contactPersonEmail" ||
-                    duplicatedKey === "email"
-                ) {
-                    return returnData(
-                        res,
-                        409,
-                        CONSTANTS.STATUS_MSG.ERROR.EMAIL_EXISTS
-                    );
-                } else if (
-                    duplicatedKey === "contactPersonPhone" ||
-                    duplicatedKey === "phoneNumber"
-                ) {
-                    return returnData(
-                        res,
-                        409,
-                        CONSTANTS.STATUS_MSG.ERROR.PHONE_NO_EXISTS
-                    );
-                }
-            }
-        }
-        return serverErrorMsg(res, err.message);
-    }
-};
-
-module.exports.readOrg = async (req, res) => {
-    try {
-        const result = await mySQLInstance
-            .executeQuery(authQueries.get_orglist)
-        // .then((result) => {
-        // console.log("🚀 ~ mySQLInstance.executeQuery ~ result:", result)
-        if (result.length < 1) {
-            return returnData(res, 404, CONSTANTS.STATUS_MSG.ERROR.NO_DATA_FOUND);
-        }
-        return returnData(
-            res,
-            200,
-            CONSTANTS.STATUS_MSG.SUCCESS.DATA_FOUND,
-            result
-        );
-        // })
-        // .catch((err) => {
-        //     // console.log("🚀 ~ mySQLInstance.executeQuery ~ err:", err);
-        //     saveLoggers(req, err.message || "");
-        //     return serverErrorMsg(res, err?.message);
-        // });
-    } catch (err) {
-        // console.log("🚀 ~ module.exports.getRoleList= ~ err:", err)
-        saveLoggers(req, err.message || "");
-        return serverErrorMsg(res, err?.message);
-    }
-};
-
-module.exports.getPaidOrg = async (req, res) => {
-    try {
-        let query = authQueries.get_paid_orglist
-        const result = await mySQLInstance
-            .executeQuery(query)
-        // .then((result) => {
-        // console.log("🚀 ~ mySQLInstance.executeQuery ~ result:", result)
-        if (result.length < 1) {
-            return returnData(res, 404, CONSTANTS.STATUS_MSG.ERROR.NO_DATA_FOUND);
-        }
-        return returnData(
-            res,
-            200,
-            CONSTANTS.STATUS_MSG.SUCCESS.DATA_FOUND,
-            result
-        );
-        // })
-        // .catch((err) => {
-        //     // console.log("🚀 ~ mySQLInstance.executeQuery ~ err:", err);
-        //     saveLoggers(req, err.message || "");
-        //     return serverErrorMsg(res, err?.message);
-        // });
-    } catch (err) {
-        // console.log("🚀 ~ module.exports.getRoleList= ~ err:", err)
-        saveLoggers(req, err.message || "");
-        return serverErrorMsg(res, err?.message);
-    }
-};
-
-module.exports.readOrgbyid = async (req, res) => {
-    try {
-        const id = req.params.id;
-        mySQLInstance
-            .executeQuery(authQueries.read_all_org_id, [id])
-            .then((result) => {
-                // console.log("🚀 ~ mySQLInstance.executeQuery ~ result:", result)
-                if (result.length < 1) {
-                    return returnData(res, 404, CONSTANTS.STATUS_MSG.ERROR.NO_DATA_FOUND);
-                }
-                return returnData(
-                    res,
-                    200,
-                    CONSTANTS.STATUS_MSG.SUCCESS.DATA_FOUND,
-                    result
-                );
-            })
-            .catch((err) => {
-                // console.log("🚀 ~ mySQLInstance.executeQuery ~ err:", err);
-                saveLoggers(req, err.message || "");
-                return serverErrorMsg(res, err?.message);
-            });
-    } catch (err) {
-        // console.log("🚀 ~ module.exports.getRoleList= ~ err:", err)
-        saveLoggers(req, err.message || "");
-        return serverErrorMsg(res, err?.message);
-    }
-};
-
-module.exports.deleteOrg = async (req, res) => {
-    try {
-        const org = req.body;
-        const id = req.params.id;
-
-        org.updatedAt = presenttimestamp();
-        org.updatedBy = req.decodedToken.tokenresult[0].accountId;
-
-        mySQLInstance
-            .executeQuery(authQueries.isOrg_Exists, [id])
-            .then((result) => {
-                if (result[0].count == 1) {
-                    mySQLInstance
-                        .executeQuery(authQueries.delete_org, [id])
-                        .then((result) => {
-                            return returnData(
-                                res,
-                                200,
-                                CONSTANTS.STATUS_MSG.SUCCESS.ORG_DELETED
-                            );
-                        })
-                        .catch((err) => {
-                            // console.log("🚀 ~ mySQLInstance.executeQuery ~ err:", err)
-                            saveLoggers(req, err);
-                            return serverErrorMsg(res, err?.message);
-                        });
-                } else {
-                    return returnData(
-                        res,
-                        409,
-                        CONSTANTS.STATUS_MSG.ERROR.INVALID_ORG_ID
-                    );
-                }
-            })
-            .catch((err) => {
-                // console.log("🚀 ~ mySQLInstance.executeQuery ~ err:", err)
-                saveLoggers(req, err);
-                return serverErrorMsg(res, err?.message);
-            });
-    } catch (err) {
-        // console.log("🚀 ~ module.exports.createRole= ~ err:", err);
-        saveLoggers(req, err);
-        return serverErrorMsg(res, err.message);
-    }
-};
 
 // Function to get content type based on file extension
 function getContentType(filePath) {
@@ -2295,90 +1703,5 @@ module.exports.getUsersListByOrgId = async (req, res) => {
     } catch (err) {
         saveLoggers(req, err);
         return serverErrorMsg(res, err.message);
-    }
-};
-
-// add users to the organisations
-// create user from admin only
-module.exports.userSignupToOrg = async (req, res) => {
-    try {
-        const { name, email, password, phoneNumber, organizationId } = req.body;
-        // console.log("🚀 ~ module.exports.userSignup= ~ organizationId:", organizationId)
-        const { tokenresult } = req.decodedToken;
-
-        bcrypt.hash(password, 9, async (err, hash) => {
-            if (err) {
-                saveLoggers(req, err || "");
-                return serverErrorMsg(res, err?.message);
-            } else {
-                // values to store in user database table
-                const userValues = [
-                    name,
-                    email,
-                    phoneNumber,
-                    hash,
-                    tokenresult[0].accountId,
-                    presenttimestamp(),
-                    1,
-                    organizationId || null
-                ];
-
-                // executing the query
-                mySQLInstance
-                    .executeQuery(authQueries.usersignUpQuery, [userValues])
-                    .then(async (result) => {
-                        let payload = {
-                            to: email,
-                            subject: "User Credentials",
-                            html: MAIL_HTML_TEMPLATES.SIGNUP_TEMPLATE(email, password, true),
-                        };
-                        await mailService.sendMail(payload);
-                        return returnData(
-                            res,
-                            201,
-                            CONSTANTS.STATUS_MSG.SUCCESS.ADMIN_REGISTERED
-                        );
-                    })
-                    .catch((err) => {
-                        // console.log("🚀 ~ mySQLInstance.executeQuery ~ err:", err)
-                        saveLoggers(req, err);
-                        if (err && err.code === "ER_DUP_ENTRY") {
-                            const duplicateEntryRegex =
-                                /Duplicate entry '(.*)' for key '(.*)'/;
-                            const matches = err.message.match(duplicateEntryRegex);
-                            if (matches && matches.length >= 3) {
-                                const duplicatedKey = matches[2];
-                                if (
-                                    duplicatedKey === "email" ||
-                                    duplicatedKey === "email"
-                                ) {
-                                    return returnData(
-                                        res,
-                                        409,
-                                        CONSTANTS.STATUS_MSG.ERROR.EMAIL_EXISTS
-                                    );
-                                } else if (
-                                    duplicatedKey === "phoneNumber" ||
-                                    duplicatedKey === "phoneNumber"
-                                ) {
-                                    return returnData(
-                                        res,
-                                        409,
-                                        CONSTANTS.STATUS_MSG.ERROR.PHONE_NO_EXISTS
-                                    );
-                                }
-                            }
-                        } else if (err && err.message === "Unable to send mail") {
-                            return serverErrorMsg(res, CONSTANTS.STATUS_MSG.ERROR.UNABLE_SEND_MAIL);
-                        } else {
-                            // if any other error occurs
-                            return serverErrorMsg(res, err?.message);
-                        }
-                    });
-            }
-        });
-    } catch (err) {
-        saveLoggers(req, err.message || "");
-        return serverErrorMsg(res, err?.message);
     }
 };

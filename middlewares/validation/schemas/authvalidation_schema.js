@@ -4,10 +4,9 @@ const { REGEX } = require("../../../utils/regEx");
 
 const auth_Schema = {
   // signup schema
-  signUp_Schema: (reqBody, isOtp) => {
-    const isAdmin = reqBody.isAdmin;
-    const signUpValidationSchema = isAdmin
-      ? Yup.object({
+  signUp_Schema: (reqBody) => {
+
+    const signUpValidationSchema = Yup.object({
         name: Yup.string()
           .required("Name is required")
           .matches(REGEX.LETTERS_ONLY, CONSTANTS.STATUS_MSG.ERROR.NAME_FIELD),
@@ -15,19 +14,20 @@ const auth_Schema = {
           .email("Enter valid email")
           .required("Email is Required")
           .matches(REGEX.EMAIL, "Please enter valid email address"),
-        phoneNumber: Yup.string()
-          .required("Phone number is required")
+        contact_no: Yup.string()
+          .required("Contact number is required")
           .matches(
             REGEX.PHONE_NO,
-            "PhoneNumber must contain only numbers and be exactly 10 digits"
+            "ContactNumber must contain only numbers and be exactly 10 digits"
           ),
-        createdBy: Yup.string().nonNullable("createdBy must be string"),
         gender: Yup.string()
           .required("gender is required")
           .matches(
             REGEX.GENDER_VALID,
             "Gender must be male, female or others"
           ),
+        username: Yup.string()
+          .required("Username is Required"),
         password: Yup.string()
           .required("Password is Required")
           .matches(
@@ -40,121 +40,35 @@ const auth_Schema = {
             "Confirm password must match with new password"
           )
           .required("confirm password required"),
-        isAdmin: Yup.boolean().required("IsAdmin is Required"),
-        role: Yup.number()
-          .required("Role is Required")
-          .typeError("Role must be number"),
-      })
-        .strict(true)
+        roleId: Yup.number()
+          .required("RoleId is Required")
+          .typeError("RoleId must be number"),
+          address: Yup.string().notRequired(),
+          city: Yup.string().notRequired(),
+          state: Yup.string().notRequired(),
+          country: Yup.string().notRequired(),
+          pincode: Yup.string().notRequired(),
+          dob: Yup.string().test("dob", (value, context) => {
+            let isTrue = value !== undefined && value !== null && value !== "";
+            if (isTrue && !REGEX.DOB_FORMAT.test(value)) {
+              throw context.createError({
+                message: "Date of birth must be in the format `YYYY-MM-DD`",
+              });
+            }
+            return true;
+          }),
+      }).strict(true)
         .noUnknown((val) => `${val.unknown} - unknown property`)
-      : isOtp
-        ? Yup.object({
-          name: Yup.string()
-            .required("Name is required")
-            .matches(REGEX.LETTERS_ONLY, CONSTANTS.STATUS_MSG.ERROR.NAME_FIELD),
-          email: Yup.string()
-            .email("Enter valid email")
-            .required("Email is Required")
-            .matches(REGEX.EMAIL, "Please enter valid email address"),
-          phoneNumber: Yup.string()
-            .required("Phone number is required")
-            .matches(
-              REGEX.PHONE_NO,
-              "PhoneNumber must contain only numbers and be exactly 10 digits"
-            ),
-          refferedBy: Yup.string().nonNullable("referredBy must be string"),
-          password: Yup.string()
-            .required("password is Required")
-            .matches(
-              REGEX.PASSWORD,
-              CONSTANTS.STATUS_MSG.ERROR.PASSWORD_INVALID
-            ),
-          confirmPassword: Yup.string()
-            .oneOf(
-              [Yup.ref("password"), null],
-              "Confirm password must match with password"
-            )
-            .required("confirm password required"),
-          isAdmin: Yup.boolean().required("IsAdmin is Required"),
-          otp: Yup.string().required("Otp is required"),
-        })
-          .strict(true)
-          .noUnknown((val) => `${val.unknown} - unknown property`)
-        : Yup.object({
-          name: Yup.string().required("Name is required"),
-          email: Yup.string()
-            .email("Enter valid email")
-            .required("Email is Required")
-            .matches(REGEX.EMAIL, "Please enter valid email address"),
-          phoneNumber: Yup.string()
-            .required("Phone number is required")
-            .matches(
-              REGEX.PHONE_NO,
-              "PhoneNumber must contain only numbers and be exactly 10 digits"
-            ),
-          refferedBy: Yup.string().nonNullable("referredBy must be string"),
-          password: Yup.string()
-            .required("password is Required")
-            .matches(
-              REGEX.PASSWORD,
-              CONSTANTS.STATUS_MSG.ERROR.PASSWORD_INVALID
-            ),
-          confirmPassword: Yup.string()
-            .oneOf(
-              [Yup.ref("password"), null],
-              "Confirm password must match with password"
-            )
-            .required("confirm password required"),
-          isAdmin: Yup.boolean().required("IsAdmin is Required"),
-          organizationId: Yup.string().notRequired()
-        })
-          .strict(true)
-          .noUnknown((val) => `${val.unknown} - unknown property`);
+      
     return signUpValidationSchema;
   },
 
   // signin schema
   signin_schema: (reqBody) => {
-    const isByPhone = reqBody.phoneNumber ? true : false;
-
-    const isPhoneNumber =
-      !isByPhone && REGEX.NUMBERS_ONLY.test(reqBody.email_phoneNumber);
-
-    const validtionSchema = !isByPhone
-      ? !isPhoneNumber
-        ? Yup.object({
-          email_phoneNumber: Yup.string()
-            .email("Enter valid email or phone number")
-            .required("Email or phone number is Required")
-            .matches(REGEX.EMAIL, "Enter valid email or phone number"),
-          password: Yup.string().required("password required"),
-          isAdmin: Yup.boolean().required("IsAdmin is Required"),
-        })
-          .strict(true)
-          .noUnknown((val) => `${val.unknown} - unknown property`)
-        : Yup.object({
-          email_phoneNumber: Yup.string()
-            .required("Email or phone number is required")
-            .matches(
-              REGEX.PHONE_NO,
-              "PhoneNumber must contain only numbers and be exactly 10 digits"
-            ),
-          password: Yup.string().required("password required"),
-          isAdmin: Yup.boolean().required("IsAdmin is Required"),
-        })
-          .strict(true)
-          .noUnknown((val) => `${val.unknown} - unknown property`)
-      : Yup.object({
-        phoneNumber: Yup.string()
-          .required("Phone number is required")
-          .matches(
-            REGEX.PHONE_NO,
-            "PhoneNumber must contain only numbers and be exactly 10 digits"
-          ),
-        isAdmin: Yup.boolean().required(
-          "IsAdmin is Required, must be true or false"
-        ),
-      })
+    const validtionSchema =  Yup.object({
+      username: Yup.string()
+        .required("Username is required"),
+      password: Yup.string().required("password required")})
         .strict(true)
         .noUnknown((val) => `${val.unknown} - unknown property`);
 
@@ -319,32 +233,12 @@ const auth_Schema = {
     .noUnknown((val) => `${val.unknown} - unknown property`),
 
   // update user detail schema
-  updateUserDetail_Schema: (reqBody) => {
-    const isAdmin = reqBody.isAdmin;
-    const updateDetailsValidationSchema = isAdmin
-      ? Yup.object({
+  updateUserDetail_Schema: () => {
+    const updateDetailsValidationSchema =  Yup.object({
         name: Yup.string()
           .required("Name is required")
           .matches(REGEX.LETTERS_ONLY, CONSTANTS.STATUS_MSG.ERROR.NAME_FIELD),
-        email: Yup.string()
-          .email("Enter valid email")
-          .required("Email is Required")
-          .matches(REGEX.EMAIL, "Please enter valid email address"),
-        phoneNumber: Yup.string()
-          .required("Phone number is required")
-          .matches(
-            REGEX.PHONE_NO,
-            "PhoneNumber must contain only numbers and be exactly 10 digits"
-          ),
-        isAdmin: Yup.boolean().required("IsAdmin is Required"),
-        role: Yup.number()
-          .required("Role is Required")
-          .typeError("Role must be number"),
-        userId: Yup.string()
-          .required("UserId is required")
-          .matches(REGEX.NUMBERS_ONLY, "UserId with numbers only"),
-        buildingno: Yup.string().nonNullable("buildingno must be string"),
-        houseno: Yup.string().nonNullable("houseno must be string"),
+        address: Yup.string().notRequired(),
         pincode: Yup.number()
           .notRequired()
           .typeError("pincode must be number")
@@ -360,16 +254,8 @@ const auth_Schema = {
             return true;
           }),
         state: Yup.string().notRequired().typeError("state must be string"),
-        district: Yup.string()
-          .notRequired()
-          .typeError("district must be string"),
         city: Yup.string().notRequired().typeError("city must be string"),
-        location: Yup.string()
-          .notRequired()
-          .typeError("location must be string"),
-        locationlatlng: Yup.string()
-          .notRequired()
-          .typeError("locationlatlng must be string"),
+        country: Yup.string().notRequired().typeError("country must be string"),
         gender: Yup.string()
           .notRequired()
           .test("gender", (value, context) => {
@@ -391,68 +277,12 @@ const auth_Schema = {
           }
           return true;
         }),
-      })
-        .strict(true)
+        userId: Yup.string()
+      .required("UserId is required")
+      .matches(REGEX.NUMBERS_ONLY, "UserId with numbers only"),
+      }).strict(true)
         .noUnknown((val) => `${val.unknown} - unknown property`)
-      : Yup.object({
-        name: Yup.string()
-          .required("Name is required")
-          .matches(REGEX.LETTERS_ONLY, CONSTANTS.STATUS_MSG.ERROR.NAME_FIELD),
-        isAdmin: Yup.boolean().required("IsAdmin is Required"),
-        userId: Yup.string()
-          .required("UserId is required")
-          .matches(REGEX.NUMBERS_ONLY, "UserId with numbers only"),
-        buildingno: Yup.string().nonNullable("buildingno must be string"),
-        houseno: Yup.string().nonNullable("houseno must be string"),
-        pincode: Yup.number()
-          .notRequired()
-          .typeError("pincode must be number")
-          .test("pincode", (value, context) => {
-            let isTrue =
-              value !== undefined && value !== null && value !== "";
-            if (isTrue && !REGEX.PINCODE.test(value)) {
-              throw context.createError({
-                message:
-                  "Pincode must be Numbners and contain exactly 6 digits",
-              });
-            }
-            return true;
-          }),
-        state: Yup.string().notRequired().typeError("state must be string"),
-        district: Yup.string()
-          .notRequired()
-          .typeError("district must be string"),
-        city: Yup.string().notRequired().typeError("city must be string"),
-        location: Yup.string()
-          .notRequired()
-          .typeError("location must be string"),
-        locationlatlng: Yup.string()
-          .notRequired()
-          .typeError("locationlatlng must be string"),
-        gender: Yup.string()
-          .notRequired()
-          .test("gender", (value, context) => {
-            let isTrue =
-              value !== undefined && value !== null && value !== "";
-            if (isTrue && !REGEX.GENDER_VALID.test(value)) {
-              throw context.createError({
-                message: "Gender must be male, female or others",
-              });
-            }
-            return true;
-          }),
-        dob: Yup.string().test("dob", (value, context) => {
-          let isTrue = value !== undefined && value !== null && value !== "";
-          if (isTrue && !REGEX.DOB_FORMAT.test(value)) {
-            throw context.createError({
-              message: "Date of birth must be in the format `YYYY-MM-DD`",
-            });
-          }
-          return true;
-        }),
-      })
-        .strict(true)
-        .noUnknown((val) => `${val.unknown} - unknown property`);
+      
 
     return updateDetailsValidationSchema;
   },
@@ -462,22 +292,21 @@ const auth_Schema = {
     name: Yup.string()
       .required("Name is required")
       .matches(REGEX.LETTERS_ONLY, CONSTANTS.STATUS_MSG.ERROR.NAME_FIELD),
-    // isAdmin: Yup.boolean().required('IsAdmin is Required'),
     email: Yup.string()
       .email("Enter valid email")
       .required("Email is Required")
       .matches(REGEX.EMAIL, "Please enter valid email address"),
-    phoneNumber: Yup.string()
+    contact_no: Yup.string()
       .required("Phone number is required")
       .matches(
         REGEX.PHONE_NO,
         "PhoneNumber must contain only numbers and be exactly 10 digits"
       ),
-    userId: Yup.string()
-      .required("UserId is required")
-      .matches(REGEX.NUMBERS_ONLY, "UserId with numbers only"),
-    buildingno: Yup.string().nonNullable("buildingno must be string"),
-    houseno: Yup.string().nonNullable("houseno must be string"),
+      roleId: Yup.number()
+      .required("Role is Required")
+      .typeError("Role must be number"),
+    address: Yup.string().nonNullable("address must be string"),
+    city: Yup.string().nonNullable("city must be string"),
     pincode: Yup.number()
       .notRequired()
       .typeError("pincode must be number")
@@ -491,12 +320,7 @@ const auth_Schema = {
         return true;
       }),
     state: Yup.string().notRequired().typeError("state must be string"),
-    district: Yup.string().notRequired().typeError("district must be string"),
-    city: Yup.string().notRequired().typeError("city must be string"),
-    location: Yup.string().notRequired().typeError("location must be string"),
-    locationlatlng: Yup.string()
-      .notRequired()
-      .typeError("locationlatlng must be string"),
+    country: Yup.string().notRequired().typeError("country must be string"),
     gender: Yup.string()
       .notRequired()
       .test("gender", (value, context) => {
@@ -517,9 +341,10 @@ const auth_Schema = {
       }
       return true;
     }),
-    organizationId: Yup.string().notRequired()
-  })
-    .strict(true)
+    userId: Yup.string()
+      .required("UserId is required")
+      .matches(REGEX.NUMBERS_ONLY, "UserId with numbers only"),
+  }).strict(true)
     .noUnknown((val) => `${val.unknown} - unknown property`),
 
   // get list of users or admin list validation
@@ -531,7 +356,6 @@ const auth_Schema = {
 
   // get list of users or admin list by id validation
   getUserListById_schema: Yup.object({
-    isAdmin: Yup.boolean().required("IsAdmin is Required"),
     id: Yup.string()
       .required("Id is required")
       .matches(REGEX.NUMBERS_ONLY, CONSTANTS.STATUS_MSG.ERROR.ID_NUMBER_ONLY),
@@ -541,7 +365,6 @@ const auth_Schema = {
 
   // delete users or admin
   deleteUserAdmin_schema: Yup.object({
-    isAdmin: Yup.boolean().required("IsAdmin is Required"),
     userId: Yup.string()
       .required("UserId is required")
       .matches(REGEX.NUMBERS_ONLY, "UserId with numbers only"),
@@ -551,18 +374,16 @@ const auth_Schema = {
 
   // create role schema
   createRole_schema: Yup.object({
-    roleName: Yup.string().required("roleName is Required"),
-    featurePermissions: Yup.string().notRequired(),
-    createdBy: Yup.string().required("createdBy is required"),
+    name: Yup.string().required("roleName is Required"),
+    featurePermissions: Yup.string().notRequired()
   })
     .strict(true)
     .noUnknown((val) => `${val.unknown} - unknown property`),
 
   // update role schema
   updateRole_schema: Yup.object({
-    roleName: Yup.string().required("roleName is Required"),
+    name: Yup.string().required("roleName is Required"),
     featurePermissions: Yup.string().notRequired(),
-    updatedBy: Yup.string().required("updatedBy is required"),
     roleId: Yup.string()
       .required("roleId is required")
       .matches(REGEX.NUMBERS_ONLY, "roleId must be number only"),

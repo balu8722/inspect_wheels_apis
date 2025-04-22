@@ -1,16 +1,13 @@
 // mail template
 module.exports.MAIL_HTML_TEMPLATES = {
   /** signup */
-  SIGNUP_TEMPLATE: (email, password, isUser = false) => {
+  SIGNUP_TEMPLATE: (username, password, isUser = false) => {
     return `<div>
-                    <h4>Welcome to Medylifeline Portal</h4>
+                    <h4>Welcome to Inspection Wheels</h4>
                     <p>You are successfully registered to the portal, Your Account credentials listed below,</p>
-                    <p className="mb-1">Email: ${email}</p>
+                    <p className="mb-1">Username: ${username}</p>
                     <p>Password: ${password}</p>
-                    ${!isUser
-        ? '<p>Click the link to login: <a href="http://localhost:3000/login">http://localhost:3000/login</a></p>'
-        : "Please Download Medylifeline App for Medical related services"
-      }
+                    <p>Click the link to login: <a href="http://localhost:5173">http://localhost:5173</a></p>
                 </div> `;
   },
 
