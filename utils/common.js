@@ -100,6 +100,14 @@ const checkAuthUser = async (tokenVal) => {
   }
 };
 
+const isSuperAdmin = async (req,res,next) => {
+    if(req.user.roleId!=1){
+      saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.UNAUTHORIZED);
+      return returnData(res, 403, CONSTANTS.STATUS_MSG.ERROR.UNAUTHORIZED);
+    }
+    next()
+};
+
 
 module.exports = {
   presenttimestamp,
@@ -113,5 +121,6 @@ module.exports = {
   _serverErrorMsg,
   splitMergeString,
   convertDateFormat,
-  checkAuthUser
+  checkAuthUser,
+  isSuperAdmin
 };

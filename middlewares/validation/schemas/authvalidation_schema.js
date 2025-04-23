@@ -91,33 +91,12 @@ const auth_Schema = {
     .noUnknown((val) => `${val.unknown} - unknown property`),
 
   // forgot password
-  forgot_schema: (reqBody) => {
-    // it contains only digits or not
-    const isPhoneNumber = REGEX.NUMBERS_ONLY.test(reqBody.email_phoneNumber);
-    // if it is phone number
-    const validtionSchema = isPhoneNumber
-      ? Yup.object({
-        email_phoneNumber: Yup.string()
-          .required("Phone number or email required")
-          .matches(
-            REGEX.PHONE_NO,
-            "PhoneNumber must contain only numbers and be exactly 10 digits"
-          ),
-        isAdmin: Yup.boolean().required("IsAdmin is Required"),
-      })
-        .strict(true)
-        .noUnknown((val) => `${val.unknown} - unknown property`)
-      : Yup.object({
-        email_phoneNumber: Yup.string()
-          .required("Phone number or email required")
-          .matches(REGEX.EMAIL, "Please enter valid email address"),
-        isAdmin: Yup.boolean().required("IsAdmin is Required"),
-      })
-        .strict(true)
-        .noUnknown((val) => `${val.unknown} - unknown property`);
-
-    return validtionSchema;
-  },
+  forgot_schema: Yup.object({
+    email: Yup.string()
+      .required("Phone number or email required")
+      .matches(REGEX.EMAIL, "Please enter valid email address")
+  }).strict(true)
+    .noUnknown((val) => `${val.unknown} - unknown property`),
 
   // verify forgot otp schema
   forgot_otp_schema: (reqBody) => {
@@ -149,66 +128,45 @@ const auth_Schema = {
   },
 
   // reset password schema
-  resetPass_Schema: (reqBody) => {
-    const isPhoneNumber = REGEX.NUMBERS_ONLY.test(reqBody.email_phoneNumber);
+  resetPass_Schema: Yup.object({
+    newPassword: Yup.string()
+      .required("Password required")
+      .matches(
+        REGEX.PASSWORD,
+        CONSTANTS.STATUS_MSG.ERROR.PASSWORD_INVALID
+      ),
+    confirmPassword: Yup.string()
+      .oneOf(
+        [Yup.ref("newPassword"), null],
+        "Confirm password must match with new password"
+      )
+      .required("password required")
+  }).strict(true)
+    .noUnknown((val) => `${val.unknown} - unknown property`),
+    
 
-    const validtionSchema = !isPhoneNumber
-      ? Yup.object({
-        email_phoneNumber: Yup.string()
-          .email("Enter valid email or phone number")
-          .required("Email or phone number is Required")
-          .matches(REGEX.EMAIL, "Enter valid email or phone number"),
-        newPassword: Yup.string()
-          .required("Password required")
-          .matches(
-            REGEX.PASSWORD,
-            CONSTANTS.STATUS_MSG.ERROR.PASSWORD_INVALID
-          ),
-        confirmPassword: Yup.string()
-          .oneOf(
-            [Yup.ref("newPassword"), null],
-            "Confirm password must match with new password"
-          )
-          .required("password required"),
-        isAdmin: Yup.boolean().required("IsAdmin is Required"),
-      })
-        .strict(true)
-        .noUnknown((val) => `${val.unknown} - unknown property`)
-      : Yup.object({
-        email_phoneNumber: Yup.string()
-          .required("Email or phone number is required")
-          .matches(
-            REGEX.PHONE_NO,
-            "PhoneNumber must contain only numbers and be exactly 10 digits"
-          ),
-        newPassword: Yup.string()
-          .required("Password required")
-          .matches(
-            REGEX.PASSWORD,
-            CONSTANTS.STATUS_MSG.ERROR.PASSWORD_INVALID
-          ),
-        confirmPassword: Yup.string()
-          .oneOf(
-            [Yup.ref("newPassword"), null],
-            "Confirm password must match with new password"
-          )
-          .required("password required"),
-        isAdmin: Yup.boolean().required("IsAdmin is Required"),
-      })
-        .strict(true)
-        .noUnknown((val) => `${val.unknown} - unknown property`);
-
-    // console.log("🚀 ~ file: common.js:67 ~ isValidPhonenumberOrEmail ~ validtionSchema", validtionSchema)
-
-    return validtionSchema;
-  },
+    // reset all users password
+    resetPass_AllUser_Schema: Yup.object({
+      email: Yup.string()
+      .required("Phone number or email required")
+      .matches(REGEX.EMAIL, "Please enter valid email address"),
+      newPassword: Yup.string()
+        .required("Password required")
+        .matches(
+          REGEX.PASSWORD,
+          CONSTANTS.STATUS_MSG.ERROR.PASSWORD_INVALID
+        ),
+      confirmPassword: Yup.string()
+        .oneOf(
+          [Yup.ref("newPassword"), null],
+          "Confirm password must match with new password"
+        )
+        .required("password required")
+    }).strict(true)
+      .noUnknown((val) => `${val.unknown} - unknown property`),
 
   // reset password schema for admin
   resetAdminPass_Schema: Yup.object({
-    email_phoneNumber: Yup.string()
-      .email("Enter valid email")
-      .required("Email is Required")
-      .matches(REGEX.EMAIL, "Enter valid email"),
     currentPassword: Yup.string().required("CurrentPassword required"),
     newPassword: Yup.string()
       .required("newPassword required")
@@ -227,7 +185,6 @@ const auth_Schema = {
           return value !== currentPassword;
         }
       ),
-    isAdmin: Yup.boolean().required("IsAdmin is Required"),
   })
     .strict(true)
     .noUnknown((val) => `${val.unknown} - unknown property`),

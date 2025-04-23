@@ -37,8 +37,17 @@ adminListQueryById: `SELECT a.*,r.featurePermissions,r.name AS roleName
         WHERE a.id=? AND a.status=1`,
 
   // user exist or not
-  isAdminPresent: (tableName) =>
-    `SELECT * FROM ${tableName} WHERE id = ? AND status=1`,
+  isAdminPresent: (tableName) =>{
+    if(tableName === CONSTANTS.DATA_TABLES.ADMINS){
+      return `SELECT a.*,r.featurePermissions,r.name AS roleName
+         FROM ${tableName} a
+        LEFT JOIN ${CONSTANTS.DATA_TABLES.ROLE} r ON r.id=a.roleId
+        WHERE a.id = ? AND a.status=1`;
+    }else {
+      return `SELECT * FROM ${tableName} WHERE id = ? AND status=1`;
+    }
+  },
+  getAdminEmail: `SELECT email,username FROM ${CONSTANTS.DATA_TABLES.ADMINS} WHERE id=? AND status=1`,
   // is admin user exist or not
   isAdminuserPresent: `SELECT a.*,r.featurePermissions,r.name AS roleName
          FROM ${CONSTANTS.DATA_TABLES.ADMINS} a
@@ -48,17 +57,17 @@ adminListQueryById: `SELECT a.*,r.featurePermissions,r.name AS roleName
   isLabAssistentPresent: `SELECT * FROM ${CONSTANTS.DATA_TABLES.LABASSISTENT} WHERE assistent_email = ? OR assistent_phone = ?`,
 
   // is email or phonenumber present in hospital,admin,lab tables
-  adminPanelSigninQuery: `SELECT id,email,phoneNumber,accountId,password,name,role,profileImage,locationlatlng,buildingno,houseno,pincode,state,District as district,city,location,dob,gender,profileImage,"${CONSTANTS.DATA_TABLES.ADMINS}" as sourcetable FROM ${CONSTANTS.DATA_TABLES.ADMINS}
-        WHERE (email = ? || phoneNumber=?) AND status=1
-        UNION ALL
-        SELECT id,email,phoneNumber,hospitalId as accountId,password,hospitalName as name,contactPerson as role,hospitalImage as profileImage,locationlatlng,addressline1 as buildingno,addressline2 as houseno,pincode,state,District as district,city,location,"" as dob,"" as gender,hospitalImage as profileImage, "${CONSTANTS.DATA_TABLES.HOSPITAL}" as sourcetable FROM ${CONSTANTS.DATA_TABLES.HOSPITAL} 
-        WHERE (email = ? || phoneNumber=?) AND status=1
-         UNION ALL
-        SELECT id,email,phoneNumber,labId as accountId,password,labname as name,contactPerson as role,labImage as profileImage,locationlatlng,addressline1 as buildingno,addressline2 as houseno,pincode,state,District as district,city,location,"" as dob,"" as gender,labImage as profileImage, "${CONSTANTS.DATA_TABLES.LAB}" as sourcetable FROM ${CONSTANTS.DATA_TABLES.LAB} 
-        WHERE (email = ? || phoneNumber=?) AND status=1`,
+  isEmailExistsQuery: `SELECT id,email,contact_no,emp_id,name,roleId,username,"${CONSTANTS.DATA_TABLES.ADMINS}" as source_table FROM ${CONSTANTS.DATA_TABLES.ADMINS}
+        WHERE email = ? AND status=1`,
+        // UNION ALL
+        // SELECT id,email,contact_no,emp_id,name, "${CONSTANTS.DATA_TABLES.HOSPITAL}" as sourcetable FROM ${CONSTANTS.DATA_TABLES.HOSPITAL} 
+        // WHERE email = ?  AND status=1
+        //  UNION ALL
+        // SELECT id,email,contact_no,emp_id,name, "${CONSTANTS.DATA_TABLES.LAB}" as sourcetable FROM ${CONSTANTS.DATA_TABLES.LAB} 
+        // WHEREemail = ?  AND status=1`,
 
-  // customer exist or not
-  isCustomerPresent: `SELECT * FROM ${CONSTANTS.DATA_TABLES.USERS} WHERE (email = ? || phoneNumber = ?)`,
+  // update forgot password status for users
+  updateForgotPasswordStatus:(tableName)=> `UPDATE ${tableName} SET isforgotpassword=1 WHERE email = ? AND status=1`,
 
   // update the password
   updateUserPasswordQuery: (isAdmin) =>
@@ -68,7 +77,7 @@ adminListQueryById: `SELECT a.*,r.featurePermissions,r.name AS roleName
 
   // update the password for admins
   updateAdminPasswordQuery: (tablename) =>
-    `UPDATE ${tablename} SET password=?, updatedAt=? WHERE email = ? AND status=1`,
+    `UPDATE ${tablename} SET password=?, lastPasswordUpdated=?,updatedBy=? WHERE id = ? AND status=1`,
 
  // updated user details by admin only
   updateUserDetailByAdminQuery: `UPDATE ${CONSTANTS.DATA_TABLES.ADMINS} SET name=?,email=?,contact_no=?,roleId=?,gender=?,

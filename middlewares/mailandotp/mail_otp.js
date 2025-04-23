@@ -63,7 +63,7 @@ class OTPHandler {
     #number_of_Seconds = ENV_DATA.OTP_VALIDATION_TIME * 60 * 1000
 
     // store number
-    storeNumber = async (email_mobile_number, isMobileOTP, email, isForgot, isSignUp) => {
+    storeNumber = async (email_mobile_number, isMobileOTP, email, isForgot, isSignUp=false) => {
         try {
             // console.log("🚀 ~ OTPHandler ~ #data:", this.#data)
 
@@ -84,11 +84,7 @@ class OTPHandler {
                 // this template will take otp and email's to send OTP,
                 // return {subject,to,html}
                 data = isSignUp ? MAIL_HTML_TEMPLATES.SIGNUP_OTP(randomNumber, email) : (isForgot ? MAIL_HTML_TEMPLATES.OTP(randomNumber, email) : MAIL_HTML_TEMPLATES.LOGIN_OTP(randomNumber, email))
-                // pass data to, send mail method, this send mail will take params, {subject,to,html}
-                // if success it will return {
-                //   message: 'mail send successfully to saiamarendrareddy@gmail.com',
-                //   isSent: true
-                // }
+                
                 const resp = await mailService.sendMail(data)
                 data = resp?.message
             }

@@ -18,9 +18,6 @@ module.exports.verifyToken = async (req, res, next) => {
     // decrypting the token and parsing the data
     let data = await jwt.verify(token, ENV_DATA.JWT_SECRET_KEY);
     let isUser = JSON.parse(decryptData(data.encryptedData));
-    console.log("🚀 ~ module.exports.verifyToken= ~ isUser:", isUser);
-    // req.body.user = isUser;
-
     /**
      * checking the user is exist or not by email
      */
@@ -29,7 +26,7 @@ module.exports.verifyToken = async (req, res, next) => {
     if (isUserExists.length < 1) {
       return returnData(res, 401, CONSTANTS.STATUS_MSG.ERROR.UNAUTHORIZED);
     }
-    console.log("🚀 ~ module.exports.verifyToken= ~ isUserExists:", isUserExists);
+    
     req.user= {...isUserExists[0], ...isUser};
     next();
   } catch (error) {
@@ -72,21 +69,39 @@ module.exports.verifyAdminToken = async (req, res, next) => {
   }
 };
 
-// verify if it has the token or not
-module.exports.verifyIsTokenExist = async (req, res, next) => {
+// check the forgot password token for admins
+module.exports.verifyForgotPasswordToken = async (req, res, next) => {
   try {
-    let token = req?.headers?.authorization?.split(" ")[1];
-    if (token) {
-      // decrypting the token and parsing the data
-      let data = await jwt.verify(token, ENV_DATA.JWT_SECRET_KEY);
-      let isUser = JSON.parse(decryptData(data.encryptedData));
-      // console.log("🚀 ~ module.exports.verifyIsTokenExist= ~ isUser:", isUser)
-      req.body.userCode = isUser.accountId;
-    }
-    next();
+    let {token} = req.params;
+    if(token){
+    // decrypting the token and parsing the data
+    let data = await jwt.verify(token, ENV_DATA.JWT_SECRET_KEY);
+    let isUser = JSON.parse(decryptData(data.encryptedData));
+
+    /**
+     * checking the user is exist or not by email
+     */
+    let isUserExists=await mySQLInstance.executeQuery(authQueries.isAdminPresent(CONSTANTS.DATA_TABLES.ADMINS), [isUser.id])
+
+        if (isUserExists.length < 1) {
+          return returnData(res, 401, CONSTANTS.STATUS_MSG.ERROR.UNAUTHORIZED);
+        }
+        let {password, ...userData}=isUserExists[0]
+        req.user= {...userData,...isUser};
+        next();
+      }else{
+        return returnData(res, 401, CONSTANTS.STATUS_MSG.ERROR.UNAUTHORIZED);
+      }
   } catch (error) {
+    // console.log("🚀 ~ module.exports.verifyToken= ~ error:", error)
     saveLoggers(res, error.message);
+    // token expired, throwing the error
+    if (error.message === "jwt expired") {
+      return returnData(res, 401, CONSTANTS.STATUS_MSG.ERROR.TOKEN_EXPIRED);
+    }
     return returnData(res, 401, CONSTANTS.STATUS_MSG.ERROR.UNAUTHORIZED);
   }
 };
+
+
 

@@ -7,7 +7,8 @@ const {
     encryptData,
     convertDateFormat,
     splitMergeString,
-    _serverErrorMsg
+    _serverErrorMsg,
+    decryptData
 } = require("../utils/common.js");
 const mySQLInstance = require("../database/database_connection.js");
 const {
@@ -54,12 +55,12 @@ module.exports.signup = async (req, res) => {
         let isDuplicateExists=await mySQLInstance.executeQuery(authQueries.isExist_admins_ro_client, [username, email, contact_no])
             
         if (isDuplicateExists.length > 0) {
-            if (result[0].email.toLowerCase() === email.toLowerCase()) {
-                return returnData(res, 409, `${CONSTANTS.STATUS_MSG.ERROR.EMAIL_EXISTS} in ${result[0].source_table}`)
-            } else if (result[0].contact_no === contact_no) {
-                return returnData(res, 409, `${CONSTANTS.STATUS_MSG.ERROR.PHONE_NO_EXISTS} in ${result[0].source_table}`)
-            }else if (result[0].username === username) {
-                return returnData(res, 409, `${CONSTANTS.STATUS_MSG.ERROR.USERNAME_EXISTS} in ${result[0].source_table}`)
+            if (isDuplicateExists[0].email.toLowerCase() === email.toLowerCase()) {
+                return returnData(res, 409, `${CONSTANTS.STATUS_MSG.ERROR.EMAIL_EXISTS} in ${isDuplicateExists[0].source_table}`)
+            } else if (isDuplicateExists[0].contact_no === contact_no) {
+                return returnData(res, 409, `${CONSTANTS.STATUS_MSG.ERROR.PHONE_NO_EXISTS} in ${isDuplicateExists[0].source_table}`)
+            }else if (isDuplicateExists[0].username === username) {
+                return returnData(res, 409, `${CONSTANTS.STATUS_MSG.ERROR.USERNAME_EXISTS} in ${isDuplicateExists[0].source_table}`)
             }
         } else {
             bcrypt.hash(password, 9, async (err, hash) => {
@@ -98,95 +99,6 @@ module.exports.signup = async (req, res) => {
                 }
             });
         }
-
-        // mySQLInstance.executeQuery(authQueries.isPresent_lab_hospital, [email, phoneNumber, email, phoneNumber]).then((result) => {
-            //     // console.log("🚀 ~ mySQLInstance.executeQuery ~ result:", result)
-            //     if (result.length > 0) {
-            //         if (result[0].email.toLowerCase() === email.toLowerCase()) {
-            //             return returnData(res, 409, `${CONSTANTS.STATUS_MSG.ERROR.EMAIL_EXISTS} in ${result[0].source_table}`)
-            //         } else if (result[0].phoneNumber === phoneNumber) {
-            //             return returnData(res, 409, `${CONSTANTS.STATUS_MSG.ERROR.PHONE_NO_EXISTS} in ${result[0].source_table}`)
-            //         }
-            //     } else {
-            //         bcrypt.hash(password, 9, async (err, hash) => {
-            //             if (err) {
-            //                 saveLoggers(req, err || "");
-            //                 return serverErrorMsg(res, err.message || '');
-            //             } else {
-            //                 // values to store in user database table
-            //                 // const userValues = [name, email, phoneNumber, hash, `MDLFL_${phoneNumber}`, refferedBy, presenttimestamp, 1];
-            //                 const adminValues = [
-            //                     name,
-            //                     email,
-            //                     phoneNumber,
-            //                     hash,
-            //                     `MDLFL_ADMIN_${phoneNumber}`,
-            //                     role,
-            //                     presenttimestamp(),
-            //                     1,
-            //                     createdBy,
-            //                     gender,
-            //                 ];
-            //                 const values = adminValues;
-
-            //                 // executing the query
-            //                 mySQLInstance
-            //                     .executeQuery(authQueries.adminSignUpQuery, values)
-            //                     .then(async (result) => {
-            //                         let payload = {
-            //                             to: email,
-            //                             subject: "Admin Credentials",
-            //                             html: MAIL_HTML_TEMPLATES.SIGNUP_TEMPLATE(email, password),
-            //                         };
-            //                         await mailService.sendMail(payload);
-            //                         return returnData(
-            //                             res,
-            //                             201,
-            //                             CONSTANTS.STATUS_MSG.SUCCESS.ADMIN_REGISTERED
-            //                         );
-            //                     })
-            //                     .catch((err) => {
-            //                         // console.log("🚀 ~ mySQLInstance.executeQuery ~ err:", err)
-            //                         saveLoggers(req, err);
-            //                         if (err && err.code === "ER_DUP_ENTRY") {
-            //                             const duplicateEntryRegex =
-            //                                 /Duplicate entry '(.*)' for key '(.*)'/;
-            //                             const matches = err.message.match(duplicateEntryRegex);
-            //                             if (matches && matches.length >= 3) {
-            //                                 const duplicatedKey = matches[2];
-            //                                 if (
-            //                                     duplicatedKey === "email" ||
-            //                                     duplicatedKey === "email"
-            //                                 ) {
-            //                                     return returnData(
-            //                                         res,
-            //                                         409,
-            //                                         CONSTANTS.STATUS_MSG.ERROR.EMAIL_EXISTS
-            //                                     );
-            //                                 } else if (
-            //                                     duplicatedKey === "phoneNumber" ||
-            //                                     duplicatedKey === "phoneNumber"
-            //                                 ) {
-            //                                     return returnData(
-            //                                         res,
-            //                                         409,
-            //                                         CONSTANTS.STATUS_MSG.ERROR.PHONE_NO_EXISTS
-            //                                     );
-            //                                 }
-            //                             }
-            //                         }
-            //                         // if any other error occurs
-            //                         return serverErrorMsg(res, err?.message);
-            //                     });
-            //             }
-            //         });
-            //     }
-            // }).catch(err => {
-            //     // console.log("🚀 ~ mySQLInstance.executeQuery ~ err:", err)
-            //     saveLoggers(req, err);
-            //     return serverErrorMsg(res, err?.message);
-            // })
-        
     } catch (err) {
         saveLoggers(req, err);
         return serverErrorMsg(res, err?.message);
@@ -289,274 +201,264 @@ module.exports.signin = async (req, res) => {
 };
 
 // verify signUp otp
-module.exports.verifySignUpOTP = async (req, res) => {
-    try {
-        const {
-            name,
-            email,
-            password,
-            phoneNumber,
-            refferedBy,
-            isAdmin,
-            role,
-            otp,
-        } = req.body;
+// module.exports.verifySignUpOTP = async (req, res) => {
+//     try {
+//         const {
+//             name,
+//             email,
+//             password,
+//             phoneNumber,
+//             refferedBy,
+//             isAdmin,
+//             role,
+//             otp,
+//         } = req.body;
 
-        const response = await OtpHandler.checkOTP(email, otp);
-        // console.log("🚀 ~ module.exports.verifySignUpOTP= ~ response:", response)
-        if (response) {
-            bcrypt.hash(password, 9, async (err, hash) => {
-                if (err) {
-                    saveLoggers(req, err || "");
-                    return serverErrorMsg(res, err?.message);
-                } else {
-                    // values to store in user database table
-                    const userValues = [
-                        name,
-                        email,
-                        phoneNumber,
-                        hash,
-                        refferedBy,
-                        presenttimestamp(),
-                        1,
-                    ];
+//         const response = await OtpHandler.checkOTP(email, otp);
+//         // console.log("🚀 ~ module.exports.verifySignUpOTP= ~ response:", response)
+//         if (response) {
+//             bcrypt.hash(password, 9, async (err, hash) => {
+//                 if (err) {
+//                     saveLoggers(req, err || "");
+//                     return serverErrorMsg(res, err?.message);
+//                 } else {
+//                     // values to store in user database table
+//                     const userValues = [
+//                         name,
+//                         email,
+//                         phoneNumber,
+//                         hash,
+//                         refferedBy,
+//                         presenttimestamp(),
+//                         1,
+//                     ];
 
-                    // executing the query
-                    mySQLInstance
-                        .executeQuery(authQueries._signUpQuery, userValues)
-                        .then(async (result) => {
-                            // console.log("🚀 ~ mySQLInstance.executeQuery ~ result:", result)
+//                     // executing the query
+//                     mySQLInstance
+//                         .executeQuery(authQueries._signUpQuery, userValues)
+//                         .then(async (result) => {
+//                             // console.log("🚀 ~ mySQLInstance.executeQuery ~ result:", result)
 
-                            let user = result[2][0];
-                            let _user = { ...user };
-                            delete _user.password;
-                            /**
-                             * encrypting the userdetails to generate the token
-                             */
-                            const userDataString = JSON.stringify({
-                                id: user.id,
-                                email: user.email,
-                                phoneNumber: user.phoneNumber,
-                                role: "user",
-                                accountId: user.accountId,
-                            });
-                            const encryptedData = encryptData(userDataString);
-                            // token generated
-                            var token = jwt.sign({ encryptedData }, ENV_DATA.JWT_SECRET_KEY, {
-                                expiresIn: ENV_DATA.CUSTOMER_ACCESS_TOKEN_EXPIRY_TIME,
-                            });
+//                             let user = result[2][0];
+//                             let _user = { ...user };
+//                             delete _user.password;
+//                             /**
+//                              * encrypting the userdetails to generate the token
+//                              */
+//                             const userDataString = JSON.stringify({
+//                                 id: user.id,
+//                                 email: user.email,
+//                                 phoneNumber: user.phoneNumber,
+//                                 role: "user",
+//                                 accountId: user.accountId,
+//                             });
+//                             const encryptedData = encryptData(userDataString);
+//                             // token generated
+//                             var token = jwt.sign({ encryptedData }, ENV_DATA.JWT_SECRET_KEY, {
+//                                 expiresIn: ENV_DATA.CUSTOMER_ACCESS_TOKEN_EXPIRY_TIME,
+//                             });
 
-                            // refresh token for regenerating the token
-                            // var refereshtoken = jwt.sign(
-                            //     { encryptedData }, ENV_DATA.JWT_SECRET_KEY, { expiresIn: ENV_DATA.REFRESH_TOKEN_EXPIRY_TIME });
+//                             // refresh token for regenerating the token
+//                             // var refereshtoken = jwt.sign(
+//                             //     { encryptedData }, ENV_DATA.JWT_SECRET_KEY, { expiresIn: ENV_DATA.REFRESH_TOKEN_EXPIRY_TIME });
 
-                            let data = {
-                                ..._user,
-                                dob: convertDateFormat(_user.dob),
-                                token: token,
-                                role: "user",
-                            };
-                            return returnData(
-                                res,
-                                201,
-                                CONSTANTS.STATUS_MSG.SUCCESS.LOGIN,
-                                data
-                            );
-                        })
-                        .catch((err) => {
-                            // console.log("🚀 ~ mySQLInstance.executeQuery ~ err:", err);
-                            saveLoggers(req, err);
-                            if (err && err.code === "ER_DUP_ENTRY") {
-                                const duplicateEntryRegex =
-                                    /Duplicate entry '(.*)' for key '(.*)'/;
-                                const matches = err.message.match(duplicateEntryRegex);
-                                if (matches && matches.length >= 3) {
-                                    const duplicatedKey = matches[2];
-                                    if (
-                                        duplicatedKey === "users.email" ||
-                                        duplicatedKey === "admins.email"
-                                    ) {
-                                        return returnData(
-                                            res,
-                                            409,
-                                            CONSTANTS.STATUS_MSG.ERROR.EMAIL_EXISTS
-                                        );
-                                    } else if (
-                                        duplicatedKey === "users.phoneNumber" ||
-                                        duplicatedKey === "admins.phoneNumber"
-                                    ) {
-                                        return returnData(
-                                            res,
-                                            409,
-                                            CONSTANTS.STATUS_MSG.ERROR.PHONE_NO_EXISTS
-                                        );
-                                    }
-                                }
-                            }
-                            // if any other error occurs
-                            return serverErrorMsg(res, err?.message);
-                        });
-                }
-            });
-        } else {
-            saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.INVALID_OTP);
-            return returnData(res, 403, CONSTANTS.STATUS_MSG.ERROR.INVALID_OTP);
-        }
-    } catch (err) {
-        // console.log("🚀 ~ module.exports.verifySignUpOTP= ~ err:", err)
-        saveLoggers(req, err.message);
-        return returnData(res, 403, CONSTANTS.STATUS_MSG.ERROR.OTP_EXPIRED);
-    }
-};
+//                             let data = {
+//                                 ..._user,
+//                                 dob: convertDateFormat(_user.dob),
+//                                 token: token,
+//                                 role: "user",
+//                             };
+//                             return returnData(
+//                                 res,
+//                                 201,
+//                                 CONSTANTS.STATUS_MSG.SUCCESS.LOGIN,
+//                                 data
+//                             );
+//                         })
+//                         .catch((err) => {
+//                             // console.log("🚀 ~ mySQLInstance.executeQuery ~ err:", err);
+//                             saveLoggers(req, err);
+//                             if (err && err.code === "ER_DUP_ENTRY") {
+//                                 const duplicateEntryRegex =
+//                                     /Duplicate entry '(.*)' for key '(.*)'/;
+//                                 const matches = err.message.match(duplicateEntryRegex);
+//                                 if (matches && matches.length >= 3) {
+//                                     const duplicatedKey = matches[2];
+//                                     if (
+//                                         duplicatedKey === "users.email" ||
+//                                         duplicatedKey === "admins.email"
+//                                     ) {
+//                                         return returnData(
+//                                             res,
+//                                             409,
+//                                             CONSTANTS.STATUS_MSG.ERROR.EMAIL_EXISTS
+//                                         );
+//                                     } else if (
+//                                         duplicatedKey === "users.phoneNumber" ||
+//                                         duplicatedKey === "admins.phoneNumber"
+//                                     ) {
+//                                         return returnData(
+//                                             res,
+//                                             409,
+//                                             CONSTANTS.STATUS_MSG.ERROR.PHONE_NO_EXISTS
+//                                         );
+//                                     }
+//                                 }
+//                             }
+//                             // if any other error occurs
+//                             return serverErrorMsg(res, err?.message);
+//                         });
+//                 }
+//             });
+//         } else {
+//             saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.INVALID_OTP);
+//             return returnData(res, 403, CONSTANTS.STATUS_MSG.ERROR.INVALID_OTP);
+//         }
+//     } catch (err) {
+//         // console.log("🚀 ~ module.exports.verifySignUpOTP= ~ err:", err)
+//         saveLoggers(req, err.message);
+//         return returnData(res, 403, CONSTANTS.STATUS_MSG.ERROR.OTP_EXPIRED);
+//     }
+// };
 
 // verify login otp
-module.exports.verifyLoginOtp = async (req, res) => {
-    const { phoneNumber, otp } = req.body;
-    // console.log("🚀 ~ module.exports.verifyLoginOtp= ~ otp:", otp)
-    try {
-        const response = await OtpHandler.checkOTP(phoneNumber, otp);
-        // console.log("🚀 ~ module.exports.verifyLoginOtp= ~ response:", response)
-        if (response) {
-            await mySQLInstance
-                .executeQuery(authQueries.isUserPresent(false), ["", phoneNumber])
-                .then((result) => {
-                    // console.log("🚀 ~ awaitmySQLInstance.executeQuery ~ result:", result)
-                    if (result.length < 1) {
-                        saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.USER_NOT_FOUND);
-                        return returnData(
-                            res,
-                            404,
-                            CONSTANTS.STATUS_MSG.ERROR.USER_NOT_FOUND
-                        );
-                    }
+// module.exports.verifyLoginOtp = async (req, res) => {
+//     const { phoneNumber, otp } = req.body;
+//     // console.log("🚀 ~ module.exports.verifyLoginOtp= ~ otp:", otp)
+//     try {
+//         const response = await OtpHandler.checkOTP(phoneNumber, otp);
+//         // console.log("🚀 ~ module.exports.verifyLoginOtp= ~ response:", response)
+//         if (response) {
+//             await mySQLInstance
+//                 .executeQuery(authQueries.isUserPresent(false), ["", phoneNumber])
+//                 .then((result) => {
+//                     // console.log("🚀 ~ awaitmySQLInstance.executeQuery ~ result:", result)
+//                     if (result.length < 1) {
+//                         saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.USER_NOT_FOUND);
+//                         return returnData(
+//                             res,
+//                             404,
+//                             CONSTANTS.STATUS_MSG.ERROR.USER_NOT_FOUND
+//                         );
+//                     }
 
-                    let user = result[0];
-                    let _user = { ...user };
-                    delete _user.password;
-                    // console.log("🚀 ~ awaitmySQLInstance.executeQuery ~ user:", user)
+//                     let user = result[0];
+//                     let _user = { ...user };
+//                     delete _user.password;
+//                     // console.log("🚀 ~ awaitmySQLInstance.executeQuery ~ user:", user)
 
-                    /**
-                     * encrypting the userdetails to generate the token
-                     */
-                    const userDataString = JSON.stringify({
-                        id: user.id,
-                        email: user.email,
-                        phoneNumber: user.phoneNumber,
-                        role: "user",
-                        accountId: user.accountId,
-                    });
-                    const encryptedData = encryptData(userDataString);
-                    // token generated
-                    var token = jwt.sign({ encryptedData }, ENV_DATA.JWT_SECRET_KEY, {
-                        expiresIn: ENV_DATA.CUSTOMER_ACCESS_TOKEN_EXPIRY_TIME,
-                    });
+//                     /**
+//                      * encrypting the userdetails to generate the token
+//                      */
+//                     const userDataString = JSON.stringify({
+//                         id: user.id,
+//                         email: user.email,
+//                         phoneNumber: user.phoneNumber,
+//                         role: "user",
+//                         accountId: user.accountId,
+//                     });
+//                     const encryptedData = encryptData(userDataString);
+//                     // token generated
+//                     var token = jwt.sign({ encryptedData }, ENV_DATA.JWT_SECRET_KEY, {
+//                         expiresIn: ENV_DATA.CUSTOMER_ACCESS_TOKEN_EXPIRY_TIME,
+//                     });
 
-                    // refresh token for regenerating the token
-                    // var refereshtoken = jwt.sign(
-                    //     { encryptedData }, ENV_DATA.JWT_SECRET_KEY, { expiresIn: ENV_DATA.REFRESH_TOKEN_EXPIRY_TIME });
+//                     // refresh token for regenerating the token
+//                     // var refereshtoken = jwt.sign(
+//                     //     { encryptedData }, ENV_DATA.JWT_SECRET_KEY, { expiresIn: ENV_DATA.REFRESH_TOKEN_EXPIRY_TIME });
 
-                    let data = {
-                        ..._user,
-                        dob: convertDateFormat(_user.dob),
-                        token: token,
-                        role: "user",
-                    };
-                    return returnData(res, 200, CONSTANTS.STATUS_MSG.SUCCESS.LOGIN, data);
-                })
-                .catch((err) => {
-                    // console.log("🚀 ~ awaitmySQLInstance.executeQuery ~ err:", err)
-                    saveLoggers(req, err);
-                    return serverErrorMsg(res, err?.message);
-                });
-        } else {
-            saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.INVALID_OTP);
-            return returnData(res, 403, CONSTANTS.STATUS_MSG.ERROR.INVALID_OTP);
-        }
-    } catch (err) {
-        saveLoggers(req, err || "");
-        // if (err.message == CONSTANTS.STATUS_MSG.ERROR.OTP_EXPIRED) {
-        //     return returnData(res, 403, CONSTANTS.STATUS_MSG.ERROR.OTP_EXPIRED)
-        // } else {
-        return returnData(res, 403, CONSTANTS.STATUS_MSG.ERROR.OTP_EXPIRED);
-        // return serverErrorMsg(res, err?.message)
-        // }
-    }
-};
+//                     let data = {
+//                         ..._user,
+//                         dob: convertDateFormat(_user.dob),
+//                         token: token,
+//                         role: "user",
+//                     };
+//                     return returnData(res, 200, CONSTANTS.STATUS_MSG.SUCCESS.LOGIN, data);
+//                 })
+//                 .catch((err) => {
+//                     // console.log("🚀 ~ awaitmySQLInstance.executeQuery ~ err:", err)
+//                     saveLoggers(req, err);
+//                     return serverErrorMsg(res, err?.message);
+//                 });
+//         } else {
+//             saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.INVALID_OTP);
+//             return returnData(res, 403, CONSTANTS.STATUS_MSG.ERROR.INVALID_OTP);
+//         }
+//     } catch (err) {
+//         saveLoggers(req, err || "");
+//         // if (err.message == CONSTANTS.STATUS_MSG.ERROR.OTP_EXPIRED) {
+//         //     return returnData(res, 403, CONSTANTS.STATUS_MSG.ERROR.OTP_EXPIRED)
+//         // } else {
+//         return returnData(res, 403, CONSTANTS.STATUS_MSG.ERROR.OTP_EXPIRED);
+//         // return serverErrorMsg(res, err?.message)
+//         // }
+//     }
+// };
 
 // forgot password
 module.exports.forgotPassword = async (req, res) => {
-    const { email_phoneNumber, isAdmin } = req.body;
+    const { email } = req.params;
     // console.log("🚀 ~ module.exports.forgotPassword= ~ email_phoneNumber:", email_phoneNumber)
     try {
+        let isEmailExists=await mySQLInstance.executeQuery(authQueries.isEmailExistsQuery, [email])
+        // console.log("🚀 ~ module.exports.forgotPassword= ~ isEmailExists:", isEmailExists)
+        if (isEmailExists.length < 1) {
+            saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.USER_NOT_FOUND);
+            return returnData(
+                res,
+                404,
+                CONSTANTS.STATUS_MSG.ERROR.USER_NOT_FOUND
+            );
+        }
+
+        let user = isEmailExists[0];
+        let isAdmin = user?.roleId==1 ? true : false;
         if (isAdmin) {
-            let forgotquery = authQueries.adminPanelSigninQuery;
-            const values = [email_phoneNumber, email_phoneNumber, email_phoneNumber, email_phoneNumber, email_phoneNumber, email_phoneNumber]
-            await mySQLInstance
-                .executeQuery(forgotquery, values)
-                .then(async (result) => {
-                    // console.log("🚀 ~ awaitmySQLInstance.executeQuery ~ result:", result)
-                    if (result.length < 1) {
-                        saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.USER_NOT_FOUND);
-                        return returnData(
-                            res,
-                            404,
-                            CONSTANTS.STATUS_MSG.ERROR.USER_NOT_FOUND
-                        );
-                    }
+            const userDataString = JSON.stringify({
+                id: user.id,
+                roleId: user.source_table === CONSTANTS.DATA_TABLES.ADMINS ? user.roleId : null,
+                source_table: user.source_table
+            });
+            const encryptedData = encryptData(userDataString);
+            // token generated
+            var token = jwt.sign({ encryptedData }, ENV_DATA.JWT_SECRET_KEY, {
+                expiresIn: ENV_DATA.FORGOT_TOKEN_EXPIRY_TIME
+            });
 
-                    let user = result[0];
-                    // sending otp to mail
-                    await OtpHandler.storeNumber(
-                        email_phoneNumber,
-                        false,
-                        user.email,
-                        true
-                    );
+            let url= `${ENV_DATA.FORGET_PASSWORD_LINK}/${token}`;
+            await OtpHandler.sendEmail(
+                url,ENV_DATA.FORGOT_TOKEN_EXPIRY_TIME, email
+            );
 
-                    return returnData(
-                        res,
-                        200,
-                        CONSTANTS.STATUS_MSG.SUCCESS.FORGOT_OTP_MAIL
-                    );
-                })
-                .catch((err) => {
-                    saveLoggers(req, err.message || "");
-                    return serverErrorMsg(res, err?.message);
-                });
+            return returnData(
+                res,
+                200,
+                CONSTANTS.STATUS_MSG.SUCCESS.FORGOT_OTP_MAIL
+            );
         } else {
-            let forgotquery = authQueries.isUserPresent(isAdmin);
-            await mySQLInstance
-                .executeQuery(forgotquery, [email_phoneNumber, email_phoneNumber])
-                .then(async (result) => {
-                    // console.log("🚀 ~ awaitmySQLInstance.executeQuery ~ result:", result)
-                    if (result.length < 1) {
-                        saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.USER_NOT_FOUND);
-                        return returnData(
-                            res,
-                            404,
-                            CONSTANTS.STATUS_MSG.ERROR.USER_NOT_FOUND
-                        );
-                    }
 
-                    let user = result[0];
-                    // sending otp to mail
-                    await OtpHandler.storeNumber(
-                        email_phoneNumber,
-                        false,
-                        user.email,
-                        true
-                    );
+            let updateForgotPasswordQuery = authQueries.updateForgotPasswordStatus(isEmailExists[0].source_table);
 
-                    return returnData(
-                        res,
-                        200,
-                        CONSTANTS.STATUS_MSG.SUCCESS.FORGOT_OTP_MAIL
-                    );
-                })
-                .catch((err) => {
-                    saveLoggers(req, err.message || "");
-                    return serverErrorMsg(res, err?.message);
-                });
+            let updateForgotSatus=await mySQLInstance.executeQuery(updateForgotPasswordQuery, [email])
+
+            let adminDetails=await mySQLInstance.executeQuery(authQueries.getAdminEmail, [1])
+
+             let adminEmail=adminDetails[0]?.email || null
+             let username=user?.username || null
+
+             if(adminEmail) {
+                    let payload = {
+                        to: adminEmail,
+                        subject: "Forgot Password Request",
+                        html: MAIL_HTML_TEMPLATES.FORGOT_PASSWORD_REQUEST_TEMPLATE(email,username),
+                    };
+                    await mailService.sendMail(payload);
+                }
+            return returnData(
+                res,
+                201,
+                CONSTANTS.STATUS_MSG.SUCCESS.FORGOT_PASSWORD_REQUEST
+            );
         }
     } catch (err) {
         saveLoggers(req, err.message || "");
@@ -565,45 +467,34 @@ module.exports.forgotPassword = async (req, res) => {
 };
 
 // verify forgot otp
-module.exports.verifyForgotOtp = async (req, res) => {
-    const { email_phoneNumber, otp, isAdmin } = req.body;
-    // console.log("🚀 ~ module.exports.verifyLoginOtp= ~ otp:", otp)
-    try {
-        const response = await OtpHandler.checkOTP(email_phoneNumber, otp);
-        // console.log("🚀 ~ module.exports.verifyLoginOtp= ~ response:", response)
-        if (response) {
-            return returnData(res, 200, CONSTANTS.STATUS_MSG.SUCCESS.OTP_VERIFIED);
-        } else {
-            saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.INVALID_OTP);
-            return returnData(res, 403, CONSTANTS.STATUS_MSG.ERROR.INVALID_OTP);
-        }
-    } catch (err) {
-        // console.log("🚀 ~ module.exports.verifyLoginOtp= ~ err:", err)
-        saveLoggers(req, err.message || "");
-        // if (err.message == CONSTANTS.STATUS_MSG.ERROR.OTP_EXPIRED) {
-        //     return returnData(res, 403, CONSTANTS.STATUS_MSG.ERROR.OTP_EXPIRED)
-        // } else {
-        return returnData(res, 403, CONSTANTS.STATUS_MSG.ERROR.OTP_EXPIRED);
-        // }
-    }
-};
+// module.exports.verifyForgotOtp = async (req, res) => {
+//     const { email_phoneNumber, otp, isAdmin } = req.body;
+//     // console.log("🚀 ~ module.exports.verifyLoginOtp= ~ otp:", otp)
+//     try {
+//         const response = await OtpHandler.checkOTP(email_phoneNumber, otp);
+//         // console.log("🚀 ~ module.exports.verifyLoginOtp= ~ response:", response)
+//         if (response) {
+//             return returnData(res, 200, CONSTANTS.STATUS_MSG.SUCCESS.OTP_VERIFIED);
+//         } else {
+//             saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.INVALID_OTP);
+//             return returnData(res, 403, CONSTANTS.STATUS_MSG.ERROR.INVALID_OTP);
+//         }
+//     } catch (err) {
+//         // console.log("🚀 ~ module.exports.verifyLoginOtp= ~ err:", err)
+//         saveLoggers(req, err.message || "");
+//         // if (err.message == CONSTANTS.STATUS_MSG.ERROR.OTP_EXPIRED) {
+//         //     return returnData(res, 403, CONSTANTS.STATUS_MSG.ERROR.OTP_EXPIRED)
+//         // } else {
+//         return returnData(res, 403, CONSTANTS.STATUS_MSG.ERROR.OTP_EXPIRED);
+//         // }
+//     }
+// };
 
 // update user or admin details
 module.exports.resetPassword = async (req, res) => {
     try {
-        const { email_phoneNumber, newPassword, isAdmin } = req.body;
-
-        if (isAdmin) {
-            // checking the previous data
-            let values = [email_phoneNumber, email_phoneNumber, email_phoneNumber, email_phoneNumber, email_phoneNumber, email_phoneNumber];
-
-            mySQLInstance.executeQuery(authQueries.adminPanelSigninQuery, values).then((result) => {
-                // console.log("🚀 ~ mySQLInstance.executeQuery ~ result:", result)
-                if (result.length < 1) {
-                    saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.USER_NOT_FOUND);
-                    return returnData(res, 404, CONSTANTS.STATUS_MSG.ERROR.USER_NOT_FOUND);
-                }
-                let user = result?.[0];
+        const {  newPassword } = req.body;
+        let user=req.user;
 
                 bcrypt.hash(newPassword, 9, async (err, hash) => {
                     if (err) {
@@ -611,66 +502,53 @@ module.exports.resetPassword = async (req, res) => {
                         return serverErrorMsg(res, err?.message);
                     }
                     const updateQuery = authQueries.updateAdminPasswordQuery(user.source_table);
-                    const updateValues = [hash, presenttimestamp(), user.email];
+                    const updateValues = [hash, presenttimestamp(),user.id, user.id];
 
-                    mySQLInstance
-                        .executeQuery(updateQuery, updateValues)
-                        .then((result) => {
-                            // console.log("🚀 ~ mySQLInstance.executeQuery ~ result:", result)
+                    let updatePassword=await mySQLInstance.executeQuery(updateQuery, updateValues)
+                    return returnData(
+                        res,
+                        200,
+                        CONSTANTS.STATUS_MSG.SUCCESS.PASSWORD_CHANGED
+                    );
+                });
+    } catch (err) {
+        saveLoggers(req, err.message || "");
+        return serverErrorMsg(res, err?.message);
+    }
+};
 
-                            return returnData(
-                                res,
-                                200,
-                                CONSTANTS.STATUS_MSG.SUCCESS.PASSWORD_CHANGED
-                            );
-                        })
-                        .catch((err) => {
+// update user or admin details
+module.exports.resetUsersPassword = async (req, res) => {
+    try {
+        const {  email,newPassword } = req.body;
+        const { id:updatedBy } = req.user;
+
+        let isUserExists=await mySQLInstance.executeQuery(authQueries.isEmailExistsQuery,[email])
+                let user=isUserExists[0]
+                if(user?.id){
+                    bcrypt.hash(newPassword, 9, async (err, hash) => {
+                        if (err) {
                             saveLoggers(req, err.message || "");
                             return serverErrorMsg(res, err?.message);
-                        });
-                });
-            });
-        }
+                        }
+                        const updateQuery = authQueries.updateAdminPasswordQuery(user.source_table);
+                        const updateValues = [hash, presenttimestamp(),updatedBy,user.id];
 
-        else {
-            // checking the previous data
-            const isQuery = authQueries.isUserPresent(isAdmin);
-            let isQueryValues = [email_phoneNumber, email_phoneNumber];
+                        let updatePassword=await mySQLInstance.executeQuery(updateQuery, updateValues)
 
-            mySQLInstance.executeQuery(isQuery, isQueryValues).then((result) => {
-                // console.log("🚀 ~ mySQLInstance.executeQuery ~ result:", result)
-                if (result.length < 1) {
-                    saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.USER_NOT_FOUND);
-                    return returnData(res, 404, CONSTANTS.STATUS_MSG.ERROR.USER_NOT_FOUND);
+                        let payload = {
+                            to: email,
+                            subject: "Password Reset",
+                            html: MAIL_HTML_TEMPLATES.RESET_PASSWORD_SUCCESS_TEMPLATE(newPassword),
+                        };
+                        await mailService.sendMail(payload);
+                        return returnData(
+                            res,
+                            200,
+                            CONSTANTS.STATUS_MSG.SUCCESS.PASSWORD_CHANGED
+                        );
+                    });
                 }
-                let user = result?.[0];
-
-                bcrypt.hash(newPassword, 9, async (err, hash) => {
-                    if (err) {
-                        saveLoggers(req, err.message || "");
-                        return serverErrorMsg(res, err?.message);
-                    }
-                    const updateQuery = authQueries.updateUserPasswordQuery(isAdmin);
-                    const updateValues = [hash, presenttimestamp(), user.email, ""];
-
-                    mySQLInstance
-                        .executeQuery(updateQuery, updateValues)
-                        .then((result) => {
-                            // console.log("🚀 ~ mySQLInstance.executeQuery ~ result:", result)
-
-                            return returnData(
-                                res,
-                                200,
-                                CONSTANTS.STATUS_MSG.SUCCESS.PASSWORD_CHANGED
-                            );
-                        })
-                        .catch((err) => {
-                            saveLoggers(req, err.message || "");
-                            return serverErrorMsg(res, err?.message);
-                        });
-                });
-            });
-        }
     } catch (err) {
         saveLoggers(req, err.message || "");
         return serverErrorMsg(res, err?.message);
@@ -680,63 +558,38 @@ module.exports.resetPassword = async (req, res) => {
 // change password of admin details
 module.exports.changePassword = async (req, res) => {
     try {
-        const { email_phoneNumber, currentPassword, newPassword, isAdmin } = req.body;
+        const { currentPassword, newPassword } = req.body;
+        const { id:updatedBy,source_table,password } = req.user;
 
-        // checking the previous data
-        const isQuery = authQueries.adminPanelSigninQuery;
-        let isQueryValues = [email_phoneNumber, email_phoneNumber, email_phoneNumber, email_phoneNumber, email_phoneNumber, email_phoneNumber];
-
-        mySQLInstance.executeQuery(isQuery, isQueryValues).then((result) => {
-            // console.log("🚀 ~ mySQLInstance.executeQuery ~ result:", result)
-            if (result.length < 1) {
-                saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.USER_NOT_FOUND);
-                return returnData(res, 404, CONSTANTS.STATUS_MSG.ERROR.USER_NOT_FOUND);
+        bcrypt.compare(currentPassword,password, (bcryptErr, isPasswordValid) => {
+            // console.log("🚀 ~ bcrypt.compare ~ isPasswordValid:", isPasswordValid)
+            if (bcryptErr) {
+                saveLoggers(req, bcryptErr)
+                return serverErrorMsg(res, err?.message)
             }
-            let user = result?.[0];
-            // console.log("🚀 ~ mySQLInstance.executeQuery ~ user:", user)
+            if (!isPasswordValid) {
+                // if password is same as old password, throw error
+                saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.INVALID_CURRENT_PASSWORD)
+                return returnData(res, 409, CONSTANTS.STATUS_MSG.ERROR.INVALID_CURRENT_PASSWORD)
+            }
 
-            bcrypt.compare(currentPassword, user.password, (bcryptErr, isPasswordValid) => {
-                // console.log("🚀 ~ bcrypt.compare ~ isPasswordValid:", isPasswordValid)
-                if (bcryptErr) {
-                    saveLoggers(req, bcryptErr)
-                    return serverErrorMsg(res, err?.message)
+            bcrypt.hash(newPassword, 9, async (err, hash) => {
+                if (err) {
+                    saveLoggers(req, err.message || "");
+                    return serverErrorMsg(res, err?.message);
                 }
-                if (!isPasswordValid) {
-                    // if password is same as old password, throw error
-                    saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.INVALID_CURRENT_PASSWORD)
-                    return returnData(res, 409, CONSTANTS.STATUS_MSG.ERROR.INVALID_CURRENT_PASSWORD)
-                }
+                const updateQuery = authQueries.updateAdminPasswordQuery(source_table);
+                const updateValues = [hash, presenttimestamp(),updatedBy, updatedBy];
 
-                bcrypt.hash(newPassword, 9, async (err, hash) => {
-                    if (err) {
-                        saveLoggers(req, err.message || "");
-                        return serverErrorMsg(res, err?.message);
-                    }
-                    const updateQuery = authQueries.updateAdminPasswordQuery(user.source_table);
-                    const updateValues = [hash, presenttimestamp(), user.email];
+                let updatePassword=await mySQLInstance.executeQuery(updateQuery, updateValues)
 
-                    mySQLInstance
-                        .executeQuery(updateQuery, updateValues)
-                        .then((result) => {
-                            // console.log("🚀 ~ mySQLInstance.executeQuery ~ result:", result)
-
-                            return returnData(
-                                res,
-                                200,
-                                CONSTANTS.STATUS_MSG.SUCCESS.PASSWORD_CHANGED
-                            );
-                        })
-                        .catch((err) => {
-                            saveLoggers(req, err.message || "");
-                            return serverErrorMsg(res, err?.message);
-                        });
-                });
+                return returnData(
+                    res,
+                    200,
+                    CONSTANTS.STATUS_MSG.SUCCESS.PASSWORD_CHANGED
+                );
             });
-
-        }).catch((err) => {
-            saveLoggers(req, err.message || '')
-            return serverErrorMsg(res, err?.message)
-        })
+        });
     } catch (err) {
         saveLoggers(req, err.message || "");
         return serverErrorMsg(res, err?.message);
@@ -783,6 +636,21 @@ module.exports.updateAdminsDetails = async (req, res) => {
     }
 };
 
+// get  users list after login by token 
+module.exports.getUserDetails = async (req, res) => {
+    try {
+        const {password, ...userDetails} = req.user
+        return returnData(
+            res,
+            200,
+            CONSTANTS.STATUS_MSG.SUCCESS.DATA_FOUND,
+            [userDetails]
+        );
+    } catch (err) {
+        saveLoggers(req, err.message || "");
+        return serverErrorMsg(res, err?.message);
+    }
+};
 // get admin or users list
 module.exports.getAdminsList = async (req, res) => {
     try {
@@ -868,9 +736,21 @@ module.exports.refreshtoken = async (req, res) => {
         // verify the refershtoken
         let data = await jwt.verify(refreshtoken, ENV_DATA.JWT_SECRET_KEY);
         // console.log("🚀 ~ module.exports.refreshtoken= ~ data:", data)
+        let isUser = JSON.parse(decryptData(data.encryptedData));
+    /**
+     * checking the user is exist or not by email
+     */
+    let isUserExists = await mySQLInstance.executeQuery(authQueries.isAdminPresent(isUser.source_table), [isUser.id])
+        if (isUserExists.length < 1) {
+            return returnData(res, 401, CONSTANTS.STATUS_MSG.ERROR.UNAUTHORIZED);
+        }
 
-        const encryptedData = data.encryptedData;
-        // console.log("🚀 ~ module.exports.refreshtoken= ~ encryptedData:", encryptedData)
+        const userDataString = JSON.stringify({
+            id: user.id,
+            roleId: user.source_table === CONSTANTS.DATA_TABLES.ADMINS ? user.roleId : null,
+            source_table: user.source_table
+        });
+        const encryptedData = encryptData(userDataString);
 
         // generate the new access token
         var token = jwt.sign({ encryptedData }, ENV_DATA.JWT_SECRET_KEY, {
@@ -1040,89 +920,89 @@ module.exports.deleterole = async (req, res) => {
 };
 
 // create user from admin only
-module.exports.userSignup = async (req, res) => {
-    try {
-        const { name, email,contact_no,username, password, roleId,address,city,state,pincode,country } = req.body;
-        // console.log("🚀 ~ module.exports.userSignup= ~ organizationId:", organizationId)
-        const { tokenresult } = req.decodedToken;
+// module.exports.userSignup = async (req, res) => {
+//     try {
+//         const { name, email,contact_no,username, password, roleId,address,city,state,pincode,country } = req.body;
+//         // console.log("🚀 ~ module.exports.userSignup= ~ organizationId:", organizationId)
+//         const { tokenresult } = req.decodedToken;
 
-        let isDuplicateFieldsExist=await mySQLInstance.executeQuery(authQueries.isExist_admins_ro_client,[username,email,contact_no])
+//         let isDuplicateFieldsExist=await mySQLInstance.executeQuery(authQueries.isExist_admins_ro_client,[username,email,contact_no])
 
-        bcrypt.hash(password, 9, async (err, hash) => {
-            if (err) {
-                saveLoggers(req, err || "");
-                return serverErrorMsg(res, err?.message);
-            } else {
-                // values to store in user database table
-                const userValues = [
-                    name,
-                    email,
-                    phoneNumber,
-                    hash,
-                    tokenresult[0].accountId,
-                    presenttimestamp(),
-                    1,
-                    organizationId || null
-                ];
+//         bcrypt.hash(password, 9, async (err, hash) => {
+//             if (err) {
+//                 saveLoggers(req, err || "");
+//                 return serverErrorMsg(res, err?.message);
+//             } else {
+//                 // values to store in user database table
+//                 const userValues = [
+//                     name,
+//                     email,
+//                     phoneNumber,
+//                     hash,
+//                     tokenresult[0].accountId,
+//                     presenttimestamp(),
+//                     1,
+//                     organizationId || null
+//                 ];
 
-                // executing the query
-                mySQLInstance
-                    .executeQuery(authQueries.usersignUpQuery, [userValues])
-                    .then(async (result) => {
-                        let payload = {
-                            to: email,
-                            subject: "User Credentials",
-                            html: MAIL_HTML_TEMPLATES.SIGNUP_TEMPLATE(email, password, true),
-                        };
-                        await mailService.sendMail(payload);
-                        return returnData(
-                            res,
-                            201,
-                            CONSTANTS.STATUS_MSG.SUCCESS.ADMIN_REGISTERED
-                        );
-                    })
-                    .catch((err) => {
-                        // console.log("🚀 ~ mySQLInstance.executeQuery ~ err:", err)
-                        saveLoggers(req, err);
-                        if (err && err.code === "ER_DUP_ENTRY") {
-                            const duplicateEntryRegex =
-                                /Duplicate entry '(.*)' for key '(.*)'/;
-                            const matches = err.message.match(duplicateEntryRegex);
-                            if (matches && matches.length >= 3) {
-                                const duplicatedKey = matches[2];
-                                if (
-                                    duplicatedKey === "email" ||
-                                    duplicatedKey === "email"
-                                ) {
-                                    return returnData(
-                                        res,
-                                        409,
-                                        CONSTANTS.STATUS_MSG.ERROR.EMAIL_EXISTS
-                                    );
-                                } else if (
-                                    duplicatedKey === "phoneNumber" ||
-                                    duplicatedKey === "phoneNumber"
-                                ) {
-                                    return returnData(
-                                        res,
-                                        409,
-                                        CONSTANTS.STATUS_MSG.ERROR.PHONE_NO_EXISTS
-                                    );
-                                }
-                            }
-                        } else if (err && err.message === "Unable to send mail") {
-                            return serverErrorMsg(res, CONSTANTS.STATUS_MSG.ERROR.UNABLE_SEND_MAIL);
-                        } else {
-                            // if any other error occurs
-                            return serverErrorMsg(res, err?.message);
-                        }
-                    });
-            }
-        });
-    } catch (err) {
-        return _serverErrorMsg(res, err?.message)
-    }
-};
+//                 // executing the query
+//                 mySQLInstance
+//                     .executeQuery(authQueries.usersignUpQuery, [userValues])
+//                     .then(async (result) => {
+//                         let payload = {
+//                             to: email,
+//                             subject: "User Credentials",
+//                             html: MAIL_HTML_TEMPLATES.SIGNUP_TEMPLATE(email, password, true),
+//                         };
+//                         await mailService.sendMail(payload);
+//                         return returnData(
+//                             res,
+//                             201,
+//                             CONSTANTS.STATUS_MSG.SUCCESS.ADMIN_REGISTERED
+//                         );
+//                     })
+//                     .catch((err) => {
+//                         // console.log("🚀 ~ mySQLInstance.executeQuery ~ err:", err)
+//                         saveLoggers(req, err);
+//                         if (err && err.code === "ER_DUP_ENTRY") {
+//                             const duplicateEntryRegex =
+//                                 /Duplicate entry '(.*)' for key '(.*)'/;
+//                             const matches = err.message.match(duplicateEntryRegex);
+//                             if (matches && matches.length >= 3) {
+//                                 const duplicatedKey = matches[2];
+//                                 if (
+//                                     duplicatedKey === "email" ||
+//                                     duplicatedKey === "email"
+//                                 ) {
+//                                     return returnData(
+//                                         res,
+//                                         409,
+//                                         CONSTANTS.STATUS_MSG.ERROR.EMAIL_EXISTS
+//                                     );
+//                                 } else if (
+//                                     duplicatedKey === "phoneNumber" ||
+//                                     duplicatedKey === "phoneNumber"
+//                                 ) {
+//                                     return returnData(
+//                                         res,
+//                                         409,
+//                                         CONSTANTS.STATUS_MSG.ERROR.PHONE_NO_EXISTS
+//                                     );
+//                                 }
+//                             }
+//                         } else if (err && err.message === "Unable to send mail") {
+//                             return serverErrorMsg(res, CONSTANTS.STATUS_MSG.ERROR.UNABLE_SEND_MAIL);
+//                         } else {
+//                             // if any other error occurs
+//                             return serverErrorMsg(res, err?.message);
+//                         }
+//                     });
+//             }
+//         });
+//     } catch (err) {
+//         return _serverErrorMsg(res, err?.message)
+//     }
+// };
 
 // get  users list for admins only
 module.exports.getUsersListForAdmins = async (req, res) => {
@@ -1148,11 +1028,11 @@ module.exports.getUsersListForAdmins = async (req, res) => {
 module.exports.updateUsersDetailsByAdmin = async (req, res) => {
     try {
         const {
-            name, gender, address, city, state,email,contact_no,
+            name, gender, address, city, state,email,contact_no,roleId,
             country, pincode,dob
         } = req.body;
         const { userId } = req.params;
-        const { roleId,id:updatedBy } = req.user;
+        const { id:updatedBy } = req.user;
 
         let isUserExists=await mySQLInstance.executeQuery(authQueries.isAdminuserPresent,[userId])
 
@@ -1164,10 +1044,10 @@ module.exports.updateUsersDetailsByAdmin = async (req, res) => {
 
         let isDuplicateFieldsExist=await mySQLInstance.executeQuery(authQueries.isExist_email_contact_no,[email,contact_no,userId])
         if (isDuplicateFieldsExist.length > 0) {
-            if (result[0].email.toLowerCase() === email.toLowerCase()) {
-                return returnData(res, 409, `${CONSTANTS.STATUS_MSG.ERROR.EMAIL_EXISTS} in ${result[0].source_table}`)
-            } else if (result[0].contact_no === contact_no) {
-                return returnData(res, 409, `${CONSTANTS.STATUS_MSG.ERROR.PHONE_NO_EXISTS} in ${result[0].source_table}`)
+            if (isDuplicateFieldsExist[0].email.toLowerCase() === email.toLowerCase()) {
+                return returnData(res, 409, `${CONSTANTS.STATUS_MSG.ERROR.EMAIL_EXISTS} in ${isDuplicateFieldsExist[0].source_table}`)
+            } else if (isDuplicateFieldsExist[0].contact_no === contact_no) {
+                return returnData(res, 409, `${CONSTANTS.STATUS_MSG.ERROR.PHONE_NO_EXISTS} in ${isDuplicateFieldsExist[0].source_table}`)
             }
         }
 

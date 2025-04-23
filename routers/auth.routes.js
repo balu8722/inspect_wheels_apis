@@ -10,15 +10,18 @@ const {
 const {
     verifyToken,
     verifyAdminToken,
+    verifyForgotPasswordToken,
 } = require("../middlewares/validation/tokenValidation");
 const { uploads } = require("../middlewares/s3bucket/s3bucket");
+const { isSuperAdmin } = require("../utils/common");
 const router = express.Router();
-// #swagger.start
+
 // admins sign up
 router.post(
     CONSTANTS.API_END_POINTS.AUTH.SIGNUP,
     auth_validation.signupValidation,
     verifyAdminToken,
+    isSuperAdmin,
     CONTROLLERS.AUTH_CONTROLLERS.signup
 );
 // signup otp validation for users
@@ -31,39 +34,44 @@ router.post(
 // signin
 router.post(
     CONSTANTS.API_END_POINTS.AUTH.SIGNIN,
-    // endPointDetectMiddleware,
     auth_validation.signinValidation,
     CONTROLLERS.AUTH_CONTROLLERS.signin
 );
-router.post(
-    CONSTANTS.API_END_POINTS.AUTH.VERIFY_LOGIN_OTP,
-    auth_validation.otpValidation,
-    CONTROLLERS.AUTH_CONTROLLERS.verifyLoginOtp
-);
-router.post(
+// router.post(
+//     CONSTANTS.API_END_POINTS.AUTH.VERIFY_LOGIN_OTP,
+//     auth_validation.otpValidation,
+//     CONTROLLERS.AUTH_CONTROLLERS.verifyLoginOtp
+// );
+router.get(
     CONSTANTS.API_END_POINTS.AUTH.FORGOT_PASSWORD,
-    endPointDetectMiddleware,
     auth_validation.forgotValidation,
     CONTROLLERS.AUTH_CONTROLLERS.forgotPassword
 );
-router.post(
-    CONSTANTS.API_END_POINTS.AUTH.VERIFY_FORGOT_OTP,
-    auth_validation.forgototpValidation,
-    CONTROLLERS.AUTH_CONTROLLERS.verifyForgotOtp
-);
+// router.post(
+//     CONSTANTS.API_END_POINTS.AUTH.VERIFY_FORGOT_OTP,
+//     auth_validation.forgototpValidation,
+//     CONTROLLERS.AUTH_CONTROLLERS.verifyForgotOtp
+// );
 router.put(
     CONSTANTS.API_END_POINTS.AUTH.RESET_PASSWORD,
-    endPointDetectMiddleware,
     auth_validation.resetPassValidation,
+    verifyForgotPasswordToken,
     CONTROLLERS.AUTH_CONTROLLERS.resetPassword
 );
 
-// for the admin reset password
+// update the passwords of the all users
+router.put(
+    CONSTANTS.API_END_POINTS.AUTH.CHANGE_USERS_PASSWORD,
+    auth_validation.resetPassUsersValidation,
+    verifyAdminToken,
+    CONTROLLERS.AUTH_CONTROLLERS.resetUsersPassword
+);
+
+// for the all users reset password
 router.put(
     CONSTANTS.API_END_POINTS.AUTH.CHANGE_PASSWORD,
-    endPointDetectMiddleware,
     auth_validation.resetAdminPassValidation,
-    verifyAdminToken,
+    verifyToken,
     CONTROLLERS.AUTH_CONTROLLERS.changePassword
 );
 
@@ -73,8 +81,10 @@ router.put(
     // endPointDetectMiddleware,
     auth_validation.updateUserDetailsFromAdminValidation,
     verifyAdminToken,
+    isSuperAdmin,
     CONTROLLERS.AUTH_CONTROLLERS.updateUsersDetailsByAdmin
 );
+
 // update user details by themselves
 router.put(
     CONSTANTS.API_END_POINTS.AUTH.UPDATE_USER,
@@ -85,16 +95,24 @@ router.put(
 );
 // upload the admin profile pictures
 router.get(
+    CONSTANTS.API_END_POINTS.AUTH.USER_DETAILS,
+    verifyToken,
+    CONTROLLERS.AUTH_CONTROLLERS.getUserDetails
+);
+router.get(
     CONSTANTS.API_END_POINTS.AUTH.ADMINS_LIST,
     verifyAdminToken,
+    isSuperAdmin,
     CONTROLLERS.AUTH_CONTROLLERS.getAdminsList
 );
 router.get(
     CONSTANTS.API_END_POINTS.AUTH.ADMINS_DETAILS_BY_ID,
     auth_validation.getUserListByIdValidation,
     verifyAdminToken,
+    isSuperAdmin,
     CONTROLLERS.AUTH_CONTROLLERS.getUsersListById
 );
+
 router.delete(
     CONSTANTS.API_END_POINTS.AUTH.DELETE_USER,
     auth_validation.deleteUserValidation,

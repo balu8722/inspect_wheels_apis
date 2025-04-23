@@ -51,6 +51,15 @@ module.exports.MAIL_HTML_TEMPLATES = {
             `,
     };
   },
+/* reset password template for users    */
+  RESET_PASSWORD_SUCCESS_TEMPLATE: (password) => {
+    return `<div>
+                    <h4>Hi</h4>
+                    <p>You are Password successfully updated as per your Request,Please do not share it with anyone,</p>
+                    <p>Password: ${password}</p>
+                    <p>Click the link to login: <a href="http://localhost:5173">http://localhost:5173</a></p>
+                </div> `;
+  },
 
   /* hospital signup template   */
   HOSPITAL_SIGNUP_TEMPLATE: (email, password) => {
@@ -70,6 +79,17 @@ module.exports.MAIL_HTML_TEMPLATES = {
                     <p>Your email updated, Your Hospital Account updated credentials are listed below,</p>
                     <p className="mb-1">Email: ${email}</p>
                     <p>Click the link to login: <a href="http://localhost:3000/login">http://localhost:3000/login</a></p>
+                </div>`;
+  },
+
+  /* forgot password request template   */
+  FORGOT_PASSWORD_REQUEST_TEMPLATE: (email, username) => {
+    return `<div>
+                    <h4>Hi</h4>
+                    <p>You'r Requested to change the password by user, and</p>
+                    <p className="mb-1">Email: ${email}</p>
+                    <p className="mb-1">Username: ${username}</p>
+                    <p>Please visit the admin portal and reset the password</p>
                 </div>`;
   }
 };

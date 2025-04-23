@@ -71,7 +71,7 @@ const auth_validation = {
   // verifyotp validation
   forgotValidation: async (req, res, next) => {
     try {
-      await auth_Schema.forgot_schema(req.body).validate(req.body)
+      await auth_Schema.forgot_schema.validate(req.params)
       // if the schema values are correct
       next()
     } catch (err) {
@@ -81,7 +81,17 @@ const auth_validation = {
   // reset pass validation
   resetPassValidation: async (req, res, next) => {
     try {
-      await auth_Schema.resetPass_Schema(req.body).validate(req.body)
+      await auth_Schema.resetPass_Schema.validate(req.body)
+      // if the schema values are correct
+      next()
+    } catch (err) {
+      returnError(res, err)
+    }
+  },
+  // reset pass users validation
+  resetPassUsersValidation: async (req, res, next) => {
+    try {
+      await auth_Schema.resetPass_AllUser_Schema.validate(req.body)
       // if the schema values are correct
       next()
     } catch (err) {
