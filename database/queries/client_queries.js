@@ -18,11 +18,9 @@ const clientQueries = {
  // if type or category name exists query
  isName_Exists:(tableName)=> `SELECT name,id,status FROM ${tableName}`,
 
- is_TYPE_CATEGORY_Exists:(tableName)=> `SELECT name,id,status FROM ${tableName} WHERE status=1 AND id=?`,
+ is_Type_Category_Exists:(tableName)=> `SELECT name,id,status FROM ${tableName} WHERE status=1 AND id=?`,
  // if update role name exists query
- _isUpdateRoleName_Exists: `SELECT name,status FROM ${CONSTANTS.DATA_TABLES.ROLE} WHERE status=1 AND id<>?`,
-
-
+ _isUpdateTypeCategoryName_Exists:(tableName)=> `SELECT name,id,status FROM ${tableName} WHERE status=1 AND id<>?`,
 };
 
 module.exports = { clientQueries };
