@@ -6,6 +6,7 @@ const { saveLoggers } = require("../middlewares/logger/logger.js");
 var jwt = require("jsonwebtoken");
 const { ENV_DATA } = require("../config/config");
 const { log } = require("winston");
+const mySQLInstance = require("../database/database_connection.js");
 
 // timestamp
 const _presenttimestamp = moment().format("YYYY-MM-DD HH:mm:ss");
@@ -108,6 +109,17 @@ const isSuperAdmin = async (req,res,next) => {
     next()
 };
 
+const generateCrossTableExistQuery= (column, tableCount) => {
+  const parts = Array.from({ length: tableCount }, () => `SELECT ?? FROM ?? WHERE ?? = ?`);
+  return parts.join(" UNION ") + " LIMIT 1";
+}
+
+const checkValueAcrossTables = async (column, value, tables) => {
+  const query =await generateCrossTableExistQuery(column, tables.length);
+  const params = tables.flatMap(table => [column, table, column, value]);
+  const result = await mySQLInstance.executeQuery(query, params);
+  return result.length > 0;
+};
 
 module.exports = {
   presenttimestamp,
@@ -122,5 +134,6 @@ module.exports = {
   splitMergeString,
   convertDateFormat,
   checkAuthUser,
-  isSuperAdmin
+  isSuperAdmin,
+  checkValueAcrossTables
 };

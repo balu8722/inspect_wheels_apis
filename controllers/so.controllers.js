@@ -7,13 +7,10 @@ const {
     encryptData,
     convertDateFormat,
     splitMergeString,
-    _serverErrorMsg
+    _serverErrorMsg,
+    checkValueAcrossTables
 } = require("../utils/common.js");
 const mySQLInstance = require("../database/database_connection.js");
-const {
-    authQueries,
-    deleteUserPermanentQuery,
-} = require("../database/queries/auth_queries.js");
 const { CONSTANTS } = require("../utils/constants.js");
 const { ENV_DATA } = require("../config/config.js");
 const {
@@ -45,44 +42,30 @@ const getExpiryDate = (inputDateString, year) => {
     return expiryDateIST;
 };
 
-
 module.exports.createso = async (req, res) => {
     try {
         const {
             name,
-            // emp_id,
             city,
             email,
             pincode,
             state,
-            caller_id,
+            secondary_contact_no,
             area,
             address,
             contact_no,
             profile_image,
             username,
             password,
-            confirm_password,
             gender,
             dob,
-            createdBy,
-            updatedBy,
         } = req.body;
 
-        // Optional: Validate password match
-        if (password !== confirm_password) {
-            return returnData(res, 400, "Password and Confirm Password do not match.");
-        }
-       
+        const {id:createdBy}=req.user;
 
-        const tables = [CONSTANTS.DATA_TABLES.SO, CONSTANTS.DATA_TABLES.ADMINS];
        
-        const checkValueAcrossTables = async (column, value, tables) => {
-            const query = soQueries.generateCrossTableExistQuery(column, tables.length);
-            const params = tables.flatMap(table => [column, table, column, value]);
-            const result = await mySQLInstance.executeQuery(query, params);
-            return result.length > 0;
-        };
+        // checking the duplicates for username, email and contact number
+        const tables = [CONSTANTS.DATA_TABLES.SO, CONSTANTS.DATA_TABLES.ADMINS];
 
         if (await checkValueAcrossTables('username', username, tables)) {
             return returnData(res, 409, "Username already exists.");
@@ -96,43 +79,28 @@ module.exports.createso = async (req, res) => {
             return returnData(res, 409, "Contact number already exists.");
         }
 
-        // 
-
-        // 3. Generate emp_id
-        const lastEmp = await mySQLInstance.executeQuery(
-            `SELECT emp_id FROM ${CONSTANTS.DATA_TABLES.SO} ORDER BY id DESC LIMIT 1`
-        );
-        let newEmpId = 'IWSO0001';
-        if (lastEmp.length > 0 && lastEmp[0].emp_id) {
-            const lastNum = parseInt(lastEmp[0].emp_id.slice(5)) + 1;
-            newEmpId = 'IWSO' + lastNum.toString().padStart(4, '0');
-        }
+        
         const saltRounds = 9;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
-        const soValues = [
-            name,
-            newEmpId,
-            city,
+
+        const soValues = [name, city,
             email,
-            pincode,
-            state,
-            caller_id,
-            area,
-            address,
+            pincode||null,
+            state||null,
+            secondary_contact_no||null,
+            area||null,
+            address||null,
             contact_no,
-            profile_image,
+            profile_image||null,
             username,
             hashedPassword,
-            // confirm_password,
-            presenttimestamp(), // createdAt
-            null,               // updatedAt
-            1,                  // status (default active)
-            presenttimestamp(), // lastPasswordUpdated
             gender,
-            dob,
+            dob||null,
+            createdBy
         ];
 
-        await mySQLInstance.executeQuery(soQueries.insert_so, soValues);
+        await mySQLInstance.executeQuery(soQueries.insert_so, [soValues]);
+
         let payload = {
             to: email,
             subject: "SO Credentials",
@@ -152,9 +120,7 @@ module.exports.createso = async (req, res) => {
     }
 };
 
-
 // UPDATE SO LEAD
-
 module.exports.updateso = async (req, res) => {
 
     const id = req.params.id || req.body.id;

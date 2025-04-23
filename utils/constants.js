@@ -68,8 +68,8 @@ module.exports.CONSTANTS = {
       DATA_FOUND: "data found",
       DATA_NOT_FOUND: "data not found",
       DATA_DELETED: "data deleted",
-      SO_REGISTERED:"Service Officer created successfully.",
-      SO_UPDATED:"Service Officer updated successfully.",
+      SO_REGISTERED:"Sub Officer created successfully.",
+      SO_UPDATED:"Sub Officer updated successfully.",
       ADMIN_REGISTERED:
         "User registered successfully, Account Credentials sent to the user through Email",
       USER_REGISTERED: "User registered successfully",
@@ -212,7 +212,7 @@ module.exports.CONSTANTS = {
   DATA_TABLES: {
     ROLE: "role",
     ADMINS: "admins",
-    SO: "so",
+    SO: "subofficers",
     CLIENT:"clients",
     VALUATOR:"valuators",
     VEHICLE_TYPE:"vehicle_type",
