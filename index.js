@@ -28,6 +28,8 @@ cron.schedule(
 // api routes
 app.use("/admin", ROUTES.AUTH_ROUTE);
 app.use("/user", ROUTES.AUTH_ROUTE);
+app.use("/so", ROUTES.SO_ROUTE);
+
 // app.use("/ro", ROUTES.HOSPITAL_ROUTE);
 
 // running the port   "10.20.121.6",
