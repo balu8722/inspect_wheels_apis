@@ -26,9 +26,9 @@ module.exports.CONSTANTS = {
       GET_ROLE: "/role/list",
       DELETE_ROLE: "/role/delete/:roleId",
     },
-    RO: {
-      CREATE_RO: "/create",
-      UPDATE_RO: "/update/:id",
+    SO: {
+      CREATE_SO: "/create",
+      UPDATE_SO: "/update/:id",
       GET_RO_LIST: "/list",
       GET_RO_BY_ID: "/list/:id",
       DELETE_RO_BY_ID: "/delete/:id/:updatedBy"
@@ -68,6 +68,8 @@ module.exports.CONSTANTS = {
       DATA_FOUND: "data found",
       DATA_NOT_FOUND: "data not found",
       DATA_DELETED: "data deleted",
+      SO_REGISTERED:"Service Officer created successfully.",
+      SO_UPDATED:"Service Officer updated successfully.",
       ADMIN_REGISTERED:
         "User registered successfully, Account Credentials sent to the user through Email",
       USER_REGISTERED: "User registered successfully",
@@ -210,7 +212,7 @@ module.exports.CONSTANTS = {
   DATA_TABLES: {
     ROLE: "role",
     ADMINS: "admins",
-    SO: "subofficers",
+    SO: "so",
     CLIENT:"clients",
     VALUATOR:"valuators",
     VEHICLE_TYPE:"vehicle_type",
