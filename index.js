@@ -29,6 +29,7 @@ cron.schedule(
 app.use("/admin", ROUTES.AUTH_ROUTE);
 app.use("/client", ROUTES.CLIENT_ROUTE);
 app.use("/so", ROUTES.SO_ROUTE);
+app.use("/valuator",ROUTES.VALUATOR_ROUTE)
 
 // running the port   "10.20.121.6",
 server.listen(ENV_DATA.BACKEND_PORT, (err) => {
