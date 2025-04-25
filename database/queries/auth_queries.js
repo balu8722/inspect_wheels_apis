@@ -1,26 +1,53 @@
 const { CONSTANTS } = require("../../utils/constants");
 
 const authQueries = {
-  // is email or phone number present in valuators or so's or clients
-  isPresent_admins_ro_client: `SELECT *, '${CONSTANTS.DATA_TABLES.ADMINS}' AS source_table
+  // signin query for the admin portal based on roles
+  isPresent_admins_so_client: `SELECT id,name,email,contact_no,roleId,username,password, '${CONSTANTS.DATA_TABLES.ADMINS}' AS source_table
   FROM ${CONSTANTS.DATA_TABLES.ADMINS}
+  WHERE username = ? AND status=1
+  UNION ALL
+  SELECT id,name,email,contact_no,NULL AS roleId,username,password, '${CONSTANTS.DATA_TABLES.CLIENT}' AS source_table
+  FROM ${CONSTANTS.DATA_TABLES.CLIENT}
+  WHERE username = ? AND status=1
+  UNION ALL
+  SELECT id,name,email,contact_no,NULL AS roleId,username,password, '${CONSTANTS.DATA_TABLES.SO}' AS source_table
+  FROM ${CONSTANTS.DATA_TABLES.SO}
   WHERE username = ? AND status=1`,
 
-  isExist_admins_ro_client: `SELECT *, '${CONSTANTS.DATA_TABLES.ADMINS}' AS source_table
+  // checking the duplicates for username, email and contact number
+  isExist_admins_so_client_valuator: `SELECT id,name,email,contact_no,roleId,username, '${CONSTANTS.DATA_TABLES.ADMINS}' AS source_table
   FROM ${CONSTANTS.DATA_TABLES.ADMINS}
-  WHERE (username = ? OR email=? OR contact_no=?) AND status=1`,
+  WHERE username = ? OR email=? OR contact_no=?
+  UNION ALL
+  SELECT id,name,email,contact_no,NULL AS roleId,username, '${CONSTANTS.DATA_TABLES.CLIENT}' AS source_table
+  FROM ${CONSTANTS.DATA_TABLES.CLIENT}
+  WHERE username = ? OR email=? OR contact_no=?
+  UNION ALL
+  SELECT id,name,email,contact_no,NULL AS roleId,username, '${CONSTANTS.DATA_TABLES.SO}' AS source_table
+  FROM ${CONSTANTS.DATA_TABLES.SO}
+  WHERE username = ? OR email=? OR contact_no=?
+  UNION ALL
+  SELECT id,name,email,contact_no,NULL AS roleId,username, '${CONSTANTS.DATA_TABLES.VALUATOR}' AS source_table
+  FROM ${CONSTANTS.DATA_TABLES.VALUATOR}
+  WHERE username = ? OR email=? OR contact_no=?`,
 
-  isExist_email_contact_no: `SELECT *, '${CONSTANTS.DATA_TABLES.ADMINS}' AS source_table
+
+  // to check the duplicate email or contact number in all tables
+  isExist_email_contact_no:(tableName)=> `SELECT id,name,email,contact_no,roleId,username, '${CONSTANTS.DATA_TABLES.ADMINS}' AS source_table
   FROM ${CONSTANTS.DATA_TABLES.ADMINS}
-  WHERE (email=? OR contact_no=?) AND id<>? AND status=1`,
-
-  isPresent_lab_hospital: `SELECT email, phoneNumber, '${CONSTANTS.DATA_TABLES.LAB}' AS source_table
-                                FROM ${CONSTANTS.DATA_TABLES.LAB}
-                                WHERE email = ? OR phonenumber = ?
-                                UNION ALL
-                                SELECT email, phoneNumber, '${CONSTANTS.DATA_TABLES.HOSPITAL}' AS source_table
-                                FROM ${CONSTANTS.DATA_TABLES.HOSPITAL}
-                                WHERE email = ? OR phonenumber = ?`,
+  WHERE (email=? OR contact_no=?) ${tableName === CONSTANTS.DATA_TABLES.ADMINS ? ' AND id <> ?' : ''}
+  UNION ALL
+  SELECT id,name,email,contact_no,NULL AS roleId,username, '${CONSTANTS.DATA_TABLES.CLIENT}' AS source_table
+  FROM ${CONSTANTS.DATA_TABLES.CLIENT}
+  WHERE (email=? OR contact_no=?) ${tableName === CONSTANTS.DATA_TABLES.CLIENT ? ' AND id <> ?' : ''}
+  UNION ALL
+  SELECT id,name,email,contact_no,NULL AS roleId,username, '${CONSTANTS.DATA_TABLES.SO}' AS source_table
+  FROM ${CONSTANTS.DATA_TABLES.SO}
+  WHERE (email=? OR contact_no=?) ${tableName === CONSTANTS.DATA_TABLES.SO ? ' AND id <> ?' : ''}
+  UNION ALL
+  SELECT id,name,email,contact_no,NULL AS roleId,username, '${CONSTANTS.DATA_TABLES.VALUATOR}' AS source_table
+  FROM ${CONSTANTS.DATA_TABLES.VALUATOR}
+  WHERE (email=? OR contact_no=?) ${tableName === CONSTANTS.DATA_TABLES.VALUATOR ? ' AND id <> ?' : ''}`,
 
   // signup query
   adminSignUpQuery: `INSERT INTO ${CONSTANTS.DATA_TABLES.ADMINS} (name,email,contact_no,username,password,roleId,gender,address,city,state,country,pincode,dob,createdBy) VALUES (?)`,
@@ -54,26 +81,21 @@ adminListQueryById: `SELECT a.*,r.featurePermissions,r.name AS roleName
         LEFT JOIN ${CONSTANTS.DATA_TABLES.ROLE} r ON r.id=a.roleId
         WHERE a.id = ? AND a.status=1`,
 
-  isLabAssistentPresent: `SELECT * FROM ${CONSTANTS.DATA_TABLES.LABASSISTENT} WHERE assistent_email = ? OR assistent_phone = ?`,
-
   // is email or phonenumber present in hospital,admin,lab tables
   isEmailExistsQuery: `SELECT id,email,contact_no,emp_id,name,roleId,username,"${CONSTANTS.DATA_TABLES.ADMINS}" as source_table FROM ${CONSTANTS.DATA_TABLES.ADMINS}
+        WHERE email = ? AND status=1
+        UNION ALL
+        SELECT id,email,contact_no,emp_id,name,NULL AS roleId,username,"${CONSTANTS.DATA_TABLES.SO}" as source_table FROM ${CONSTANTS.DATA_TABLES.SO}
+        WHERE email = ? AND status=1
+        UNION ALL
+        SELECT id,email,contact_no,emp_id,name,NULL AS roleId,username,"${CONSTANTS.DATA_TABLES.CLIENT}" as source_table FROM ${CONSTANTS.DATA_TABLES.CLIENT}
+        WHERE email = ? AND status=1
+        UNION ALL
+        SELECT id,email,contact_no,emp_id,name,NULL AS roleId,username,"${CONSTANTS.DATA_TABLES.VALUATOR}" as source_table FROM ${CONSTANTS.DATA_TABLES.VALUATOR}
         WHERE email = ? AND status=1`,
-        // UNION ALL
-        // SELECT id,email,contact_no,emp_id,name, "${CONSTANTS.DATA_TABLES.HOSPITAL}" as sourcetable FROM ${CONSTANTS.DATA_TABLES.HOSPITAL} 
-        // WHERE email = ?  AND status=1
-        //  UNION ALL
-        // SELECT id,email,contact_no,emp_id,name, "${CONSTANTS.DATA_TABLES.LAB}" as sourcetable FROM ${CONSTANTS.DATA_TABLES.LAB} 
-        // WHEREemail = ?  AND status=1`,
 
   // update forgot password status for users
   updateForgotPasswordStatus:(tableName)=> `UPDATE ${tableName} SET isforgotpassword=1 WHERE email = ? AND status=1`,
-
-  // update the password
-  updateUserPasswordQuery: (isAdmin) =>
-    `UPDATE ${
-      isAdmin ? CONSTANTS.DATA_TABLES.ADMINS : CONSTANTS.DATA_TABLES.USERS
-    } SET password=?, updatedAt=? WHERE (email = ? || phoneNumber = ?)`,
 
   // update the password for admins
   updateAdminPasswordQuery: (tablename) =>
@@ -93,6 +115,9 @@ adminListQueryById: `SELECT a.*,r.featurePermissions,r.name AS roleName
   // delete user or admin
   deleteAdmin_User: (table) =>
     `UPDATE ${table} SET status=0, updatedAt=?,updatedBy=? WHERE id=? AND status=1`,
+  // delete user or admin
+  activate_Admin_User: (table) =>
+    `UPDATE ${table} SET status=1, updatedAt=?,updatedBy=? WHERE id=? AND status=0`,
 
   // cretae user role
   create_Role: `INSERT INTO ${CONSTANTS.DATA_TABLES.ROLE} (name,featurePermissions,createdBy) VALUES(?,?,?)`,
@@ -139,17 +164,9 @@ adminListQueryById: `SELECT a.*,r.featurePermissions,r.name AS roleName
   // update customer profike picture
   customerImageUpdateQuery: `UPDATE ${CONSTANTS.DATA_TABLES.USERS} SET profileImage=? WHERE id=? AND status=1`,
 
-  // get hospital Details
-  hospitalDetailById: `SELECT * FROM ${CONSTANTS.DATA_TABLES.HOSPITAL} WHERE id=?`,
-
-  // get lab Details
-  labDetailById: `SELECT * FROM ${CONSTANTS.DATA_TABLES.LAB} WHERE id=?`,
-
   // fcp token update for users
   updateFCMtoken: `UPDATE ${CONSTANTS.DATA_TABLES.USERS} SET fcm_token=? WHERE id=? AND status=1`,
 
 };
 
-const deleteUserPermanentQuery = `DELETE FROM ${CONSTANTS.DATA_TABLES.USERS} WHERE id=?`;
-
-module.exports = { authQueries,deleteUserPermanentQuery };
+module.exports = { authQueries };

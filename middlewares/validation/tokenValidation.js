@@ -46,7 +46,6 @@ module.exports.verifyAdminToken = async (req, res, next) => {
     // decrypting the token and parsing the data
     let data = await jwt.verify(token, ENV_DATA.JWT_SECRET_KEY);
     let isUser = JSON.parse(decryptData(data.encryptedData));
-
     /**
      * checking the user is exist or not by email
      */

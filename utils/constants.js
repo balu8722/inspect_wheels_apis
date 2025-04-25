@@ -35,24 +35,25 @@ module.exports.CONSTANTS = {
     },
     CLIENTS: {
       CREATE_CLIENT: "/create",
-      UPDATE_CLIENT: "/update/:id",
-      GET_CLIENT_LIST: "/list",
-      GET_CLIENT_BY_ID: "/list/:id",
-      DELETE_CLIENT_BY_ID: "/delete/:id",
+      UPDATE_CLIENT: "/update/:clientId",
+      GET_CLIENT_LIST: "/list/:rowsPerPage/:pageNo",
+      GET_CLIENT_BY_ID: "/list/:clientId",
+      DEACTIVATE_CLIENT_BY_ID: "/deactivate/:clientId",
+      ACTIVATE_CLIENT_BY_ID: "/activate/:clientId",
 
       // vehicle types 
       CREATE_VEHICLE_TYPE: "/createVehicleType",
-      UPDATE_VEHICLE_TYPE: "/updateVehicleType/:id",
+      UPDATE_VEHICLE_TYPE: "/updateVehicleType/:typeId",
       GET_VEHICLE_TYPE_LIST: "/listVehicleType",
-      GET_VEHICLE_TYPE_BY_ID: "/listVehicleType/:id",
-      DELETE_VEHICLE_TYPE_BY_ID: "/deleteVehicleType/:id",
+      GET_VEHICLE_TYPE_BY_ID: "/listVehicleType/:typeId",
+      DELETE_VEHICLE_TYPE_BY_ID: "/deleteVehicleType/:typeId",
 
       // vehicle category
       CREATE_VEHICLE_CATEGORY: "/createVehicleCategory",
-      UPDATE_VEHICLE_CATEGORY: "/updateVehicleCategory/:id",
+      UPDATE_VEHICLE_CATEGORY: "/updateVehicleCategory/:categoryId",
       GET_VEHICLE_CATEGORY_LIST: "/listVehicleCategory",
-      GET_VEHICLE_CATEGORY_BY_ID: "/listVehicleCategory/:id",
-      DELETE_VEHICLE_CATEGORY_BY_ID: "/deleteVehicleCategory/:id",
+      GET_VEHICLE_CATEGORY_BY_ID: "/listVehicleCategory/:categoryId",
+      DELETE_VEHICLE_CATEGORY_BY_ID: "/deleteVehicleCategory/:categoryId",
     },
   },
 
@@ -165,7 +166,9 @@ module.exports.CONSTANTS = {
       FCM_UPDATED: "FCM token updated",
       NOTIFICATION_CREATED: "Notification created sucessfully",
       NOTIFICATION_UPDATED: "Notification updated sucessfully",
-      NOTIFICATION_DELETED: "Notification deleted sucessfully",
+
+      CLIENT_DEACTIVATED: "Client deactivated successfully",
+      CLIENT_ACTIVATED: "Client activated successfully",
     },
     ERROR: {
       LOGIN: "sign-in failed",
@@ -203,7 +206,11 @@ module.exports.CONSTANTS = {
       ID_NUMBER_ONLY: "id must be number only",
       ITEM_NOT_FOUND: "item not found",
       NOT_AUTHORIZED: "Not authorized to remove this data",
+      NAME_EXISTS:"Name already exists",
+      SHORT_CODE_EXISTS:"Short code already exists",
 
+      CLIENT_NOT_FOUND: "Client not found",
+      VEHICLE_TYPES_NOT_FOUND:"Some Vehicle types are invalid"
       
     },
   },
@@ -215,7 +222,7 @@ module.exports.CONSTANTS = {
     SO: "subofficers",
     CLIENT:"clients",
     VALUATOR:"valuators",
-    VEHICLE_TYPE:"vehicle_type",
-    VEHICLE_CATEGORY:"vehicle_category",
+    VEHICLE_TYPE:"vehicletype",
+    VEHICLE_CATEGORY:"vehiclecategory",
   },
 };

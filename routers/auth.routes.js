@@ -22,7 +22,7 @@ router.post(
     auth_validation.signupValidation,
     verifyAdminToken,
     isSuperAdmin,
-    CONTROLLERS.AUTH_CONTROLLERS.signup
+    CONTROLLERS.AUTH_CONTROLLERS.subadminSignup
 );
 // signup otp validation for users
 // router.post(
