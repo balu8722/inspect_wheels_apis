@@ -29,9 +29,10 @@ module.exports.CONSTANTS = {
     SO: {
       CREATE_SO: "/create",
       UPDATE_SO: "/update/:id",
-      GET_RO_LIST: "/list",
-      GET_RO_BY_ID: "/list/:id",
-      DELETE_RO_BY_ID: "/delete/:id/:updatedBy"
+      UPDATE_SO_THEMSELVES: "/updatethemselves/:id",
+      GET_SO_LIST: "/list",
+      GET_SO_BY_ID: "/list/:id",
+      DELETE_SO_BY_ID: "/delete/:id"
     },
     CLIENTS: {
       CREATE_CLIENT: "/create",
@@ -54,6 +55,14 @@ module.exports.CONSTANTS = {
       GET_VEHICLE_CATEGORY_BY_ID: "/listVehicleCategory/:id",
       DELETE_VEHICLE_CATEGORY_BY_ID: "/deleteVehicleCategory/:id",
     },
+    VALUATOR: {
+      CREATE_VALUATOR: "/create",
+      UPDATE_VALUATOR: "/update/:id",
+      UPDATE_VALUATOR_THEMSELVES: "/updatethemselves/:id",
+      GET_VALUATOR_LIST: "/list",
+      GET_VALUATOR_BY_ID: "/list/:id",
+      DELETE_VALUATOR_BY_ID: "/delete/:id"
+    },
   },
 
   //  api payloads
@@ -70,6 +79,12 @@ module.exports.CONSTANTS = {
       DATA_DELETED: "data deleted",
       SO_REGISTERED:"Sub Officer created successfully.",
       SO_UPDATED:"Sub Officer updated successfully.",
+      SO_LIST: "Sub Officer list fetched successfully.",
+      SO_DETAILS: "Sub Officer details fetched successfully.",
+      VALUATOR_REGISTERED: "Valuator created successfully.",
+      VALUATOR_UPDATED: "Valuator updated successfully.",
+      VALUATOR_LIST: "Valuator list fetched successfully.",
+      VALUATOR_DETAILS: "Valuator details fetched successfully.",
       ADMIN_REGISTERED:
         "User registered successfully, Account Credentials sent to the user through Email",
       USER_REGISTERED: "User registered successfully",
@@ -203,6 +218,10 @@ module.exports.CONSTANTS = {
       ID_NUMBER_ONLY: "id must be number only",
       ITEM_NOT_FOUND: "item not found",
       NOT_AUTHORIZED: "Not authorized to remove this data",
+      NO_SO_FOUND: "The requested Sub Officer could not be found",
+      NO_VALUATOR_FOUND: "The requested Valuator could not be found",
+      SO_DELETED: "Sub Officer deleted successfully",
+      VALUATOR_DELETED: "Valuator deleted successfully"
 
       
     },

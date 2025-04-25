@@ -16,6 +16,7 @@ const { so_validation } = require("../middlewares/validation/sovalidation");
 const { isSuperAdmin } = require("../utils/common");
 const router = express.Router();
 
+// CREATE SO
 router.post(
     CONSTANTS.API_END_POINTS.SO.CREATE_SO,
     so_validation.createsoValidation,
@@ -24,11 +25,44 @@ router.post(
     CONTROLLERS.SO_CONTROLLERS.createso
 );
 
+// UPDATE SO
 router.put(
     CONSTANTS.API_END_POINTS.SO.UPDATE_SO,
-    so_validation.createsoValidation,
+    so_validation.updatesoValidation,
     verifyToken,
+    isSuperAdmin, 
     CONTROLLERS.SO_CONTROLLERS.updateso
+);
+
+// UPDATE SO BY THEMSELVES
+
+router.put(
+    CONSTANTS.API_END_POINTS.SO.UPDATE_SO_THEMSELVES,
+    verifyToken,
+    CONTROLLERS.SO_CONTROLLERS.updatethemselves
+);
+
+
+// GET GET SO LIST
+router.get(
+    CONSTANTS.API_END_POINTS.SO.GET_SO_LIST,
+    verifyToken,
+    CONTROLLERS.SO_CONTROLLERS.getROList
+);
+
+// GET GET SO BY ID
+router.get(
+    CONSTANTS.API_END_POINTS.SO.GET_SO_BY_ID,
+    verifyToken,
+    CONTROLLERS.SO_CONTROLLERS.getSOById
+);
+
+// DELETE SO BY ID
+
+router.delete(
+    CONSTANTS.API_END_POINTS.SO.DELETE_SO_BY_ID,
+    verifyToken,
+    CONTROLLERS.SO_CONTROLLERS.deleteSOById
 );
 
 module.exports = router;

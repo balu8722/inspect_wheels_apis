@@ -24,7 +24,7 @@ const fs = require('fs');
 const path = require('path');
 const { s3, deleteObjectByUrl, compressImage } = require("../middlewares/s3bucket/s3bucket.js");
 const momentTz = require("moment-timezone");
-const soQueries = require('../database/queries/so_queries.js');
+const soQueries = require('../database/queries/valuator_queries.js');
 const { log } = require("console");
 const { generateCrossTableExistQuery } = require('../database/queries/so_queries.js');
 
@@ -42,7 +42,8 @@ const getExpiryDate = (inputDateString, year) => {
     return expiryDateIST;
 };
 
-module.exports.createso = async (req, res) => {
+module.exports.createvaluator = async (req, res) => {
+ 
     try {
         const {
             name,
@@ -83,7 +84,7 @@ module.exports.createso = async (req, res) => {
         const saltRounds = 9;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-        const soValues = [name, city,
+        const valuatorValues = [name, city,
             email,
             pincode||null,
             state||null,
@@ -99,18 +100,18 @@ module.exports.createso = async (req, res) => {
             createdBy
         ];
 
-        await mySQLInstance.executeQuery(soQueries.insert_so, [soValues]);
+        await mySQLInstance.executeQuery(soQueries.insert_valuator, [valuatorValues]);
 
         let payload = {
             to: email,
-            subject: "SO Credentials",
+            subject: "Valuaror Credentials",
             html: MAIL_HTML_TEMPLATES.SIGNUP_TEMPLATE(username, password),
         };
         await mailService.sendMail(payload);
          return returnData(
             res, 
             201,
-             CONSTANTS.STATUS_MSG.SUCCESS.SO_REGISTERED
+             CONSTANTS.STATUS_MSG.SUCCESS.VALUATOR_REGISTERED
             );
 
     } catch (err) {
@@ -121,9 +122,12 @@ module.exports.createso = async (req, res) => {
 };
 
 // UPDATE SO 
-module.exports.updateso = async (req, res) => {
+module.exports.updatevaluator = async (req, res) => {
 
     const id = req.params.id || req.body.id;
+
+    console.log("tester====>",req.body);
+    
 
     try {
         const {
@@ -143,25 +147,24 @@ module.exports.updateso = async (req, res) => {
 
         const { id: updatedBy } = req.user;
 
-        
 
         // Validate required fields
         if (!id) {
-            return returnData(res, 400, "Sub officer ID is required for update.");
+            return returnData(res, 400, "Valuator ID is required for update.");
         }
 
 
-        const checkResult = await mySQLInstance.executeQuery(soQueries.find_so_by, [id]);
+        const checkResult = await mySQLInstance.executeQuery(soQueries.find_valuator_by, [id]);
 
-        console.log("user==>",id);
-        console.log("user alredy ==>", checkResult);
-        
-
+        if (checkResult.length === 0) {
+            return returnData(res, 404, "The specified Valuator could not be found.");
+        }
+        // 
         // checking the duplicates for username, email and contact number
         const tables = [CONSTANTS.DATA_TABLES.SO, CONSTANTS.DATA_TABLES.ADMINS, CONSTANTS.DATA_TABLES.VALUATOR];
 
 
-        if (id != checkResult[0].id) {
+        if (id != checkResult[0].id){
             if (await checkValueAcrossTables('email', email, tables)) {
                 return returnData(res, 409, "Email already exists.");
             }
@@ -171,9 +174,7 @@ module.exports.updateso = async (req, res) => {
             }
         }
 
-        if (checkResult.length === 0) {
-            return returnData(res, 404, "The specified Sub Officer could not be found.");
-        }
+     
 
         // Prepare the update values
         const updateValues = [
@@ -194,9 +195,12 @@ module.exports.updateso = async (req, res) => {
         ];
 
         // Execute the update query
-        await mySQLInstance.executeQuery(soQueries.update_so, updateValues);
+        await mySQLInstance.executeQuery(soQueries.update_valuator, updateValues);
 
-        return returnData(res, 200, CONSTANTS.STATUS_MSG.SUCCESS.SO_UPDATED);
+        return returnData(
+            res, 200,
+            CONSTANTS.STATUS_MSG.SUCCESS.VALUATOR_UPDATED
+            );
     } catch (err) {
         console.error("Error in updateso:", err);
         saveLoggers(req, err);
@@ -205,7 +209,7 @@ module.exports.updateso = async (req, res) => {
 };
 
 
-// UPDATE SO THEMSELVES
+// UPDATE VALUATOR THEMSELVES
 module.exports.updatethemselves = async (req, res) => {
     
     const id = req.params.id || req.body.id;
@@ -236,7 +240,7 @@ module.exports.updatethemselves = async (req, res) => {
         }
 
 
-        const checkResult = await mySQLInstance.executeQuery(soQueries.find_so_by, [id]);
+        const checkResult = await mySQLInstance.executeQuery(soQueries.find_valuator_by, [id]);
 
         if (checkResult.length === 0) {
             return returnData(res, 404, "The specified Sub Officer could not be found.");
@@ -261,7 +265,10 @@ module.exports.updatethemselves = async (req, res) => {
         // Execute the update query
         await mySQLInstance.executeQuery(soQueries.update_so_themselves, updateValues);
 
-        return returnData(res, 200, CONSTANTS.STATUS_MSG.SUCCESS.SO_UPDATED);
+        return returnData(
+            res, 200,
+            CONSTANTS.STATUS_MSG.SUCCESS.VALUATOR_UPDATED
+            );
     } catch (err) {
         console.error("Error in updateso:", err);
         saveLoggers(req, err);
@@ -270,17 +277,17 @@ module.exports.updatethemselves = async (req, res) => {
 
 }
 
-// GET RO LIST
+// GET VALUATOR LIST
 
-module.exports.getROList = async (req, res) => {
+module.exports.getValuatorList = async (req, res) => {
     try {
-         const roList = await mySQLInstance.executeQuery(soQueries.get_so_list);
+        const valuatorList = await mySQLInstance.executeQuery(soQueries.get_valuator_list);
         // Remove password field from each record
-        const filteredResult = roList.map(({ password, ...rest }) => rest);
+        const filteredResult = valuatorList.map(({ password, ...rest }) => rest);
 
         return returnData(
             res, 200,
-            CONSTANTS.STATUS_MSG.SUCCESS.SO_LIST,
+            CONSTANTS.STATUS_MSG.SUCCESS.VALUATOR_LIST,
             filteredResult
             );
     } catch (err) { 
@@ -290,17 +297,17 @@ module.exports.getROList = async (req, res) => {
     }
 };
 
-// GET RO BY ID
+// GET VALUATOR BY ID
 
-module.exports.getSOById = async (req, res) => {
+module.exports.getValuatorById = async (req, res) => {
     try {
         const { id } = req.params;
-       const result = await mySQLInstance.executeQuery(soQueries.get_so_by_id, [id]);
+        const result = await mySQLInstance.executeQuery(soQueries.get_valuator_by_id, [id]);
 
         if (result.length === 0) {
             return returnData(
                 res, 404,
-                CONSTANTS.STATUS_MSG.ERROR.NO_SO_FOUND
+                CONSTANTS.STATUS_MSG.ERROR.NO_VALUATOR_FOUND
                 );
         }
 
@@ -310,7 +317,7 @@ module.exports.getSOById = async (req, res) => {
         return returnData(
             res,
             200,
-            CONSTANTS.STATUS_MSG.SUCCESS.SO_DETAILS,
+            CONSTANTS.STATUS_MSG.SUCCESS.VALUATOR_DETAILS,
             soDetails
         );
     } catch (err) {
@@ -320,29 +327,29 @@ module.exports.getSOById = async (req, res) => {
     }
 };
 
-// DELETE SO BY ID  
-module.exports.deleteSOById = async (req, res) => {
+// DELETE VALUATOR BY ID  
+module.exports.deleteValuatorById = async (req, res) => {
     try {
         const { id } = req.params;
-        const checkQuery = `SELECT id FROM ${CONSTANTS.DATA_TABLES.SO} WHERE id = ?`;
+        const checkQuery = `SELECT id FROM ${CONSTANTS.DATA_TABLES.VALUATOR} WHERE id = ?`;
         const checkResult = await mySQLInstance.executeQuery(checkQuery, [id]);
 
 
-        const result = await mySQLInstance.executeQuery(soQueries.delete_so_by, [id])
+        const result = await mySQLInstance.executeQuery(soQueries.delete_valuator_by, [id])
        
         
         // First, check if the SO exists
         if (checkResult.length === 0) {
             return returnData(
                 res, 404,
-                CONSTANTS.STATUS_MSG.ERROR.NO_SO_FOUND
+                CONSTANTS.STATUS_MSG.ERROR.NO_VALUATOR_FOUND
             );
         }
 
         return returnData(
             res,
             200,
-            CONSTANTS.STATUS_MSG.ERROR.SO_DELETED
+            CONSTANTS.STATUS_MSG.ERROR.VALUATOR_DELETED
         );
     } catch (err) {
         console.error("Error in deleteSOById:", err);

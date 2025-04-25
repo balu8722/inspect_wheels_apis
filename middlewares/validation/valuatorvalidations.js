@@ -1,40 +1,31 @@
 const { returnError } = require("../../utils/common");
 const { auth_Schema } = require("./schemas/authvalidation_schema");
-const { so_Schema } = require("./schemas/sovalidation_schema");
+const { valuator_Schema } = require("./schemas/valuatorvalidation_schema");
 
 
-const so_validation = {
+const valuator_validation = {
     // create roles validation
-    createsoValidation: async (req, res, next) => {
+    create_valuator_Validation: async (req, res, next) => {
         try {
             let data = { ...req.body }
-            await so_Schema.createso_schema.validate(data)
+            await valuator_Schema.create_valuator_schema.validate(data)
             next()
         } catch (err) {
             returnError(res, err)
         }
     },
 
-    // UPDATE SO
-    updatesoValidation: async (req, res, next) => {
+    // UPDATE VALUATOR
+    update_valuator_Validation: async (req, res, next) => {
         try {
             let data = { ...req.body }
-            await so_Schema.updateso_schema.validate(data)
+            await valuator_Schema.update_caluator_schema.validate(data)
             next()
         } catch (err) {
             returnError(res, err)
         }
     },
-
-    
-
-
-
-
-
-
-
 
 
 };
-module.exports = { so_validation };
+module.exports = { valuator_validation };
