@@ -30,9 +30,11 @@ module.exports.CONSTANTS = {
       CREATE_SO: "/create",
       UPDATE_SO: "/update/:id",
       UPDATE_SO_THEMSELVES: "/updatethemselves/:id",
-      GET_SO_LIST: "/list",
+      // GET_SO_LIST: "/list",
+      GET_SO_LIST: "/list/:rowsPerPage/:pageNo",
       GET_SO_BY_ID: "/list/:id",
-      DELETE_SO_BY_ID: "/delete/:id"
+      DELETE_SO_BY_ID: "/delete/:id",
+      ACTIVATE_SO_BY_ID: "/activate/:id",
     },
     CLIENTS: {
       CREATE_CLIENT: "/create",
@@ -60,9 +62,10 @@ module.exports.CONSTANTS = {
       CREATE_VALUATOR: "/create",
       UPDATE_VALUATOR: "/update/:id",
       UPDATE_VALUATOR_THEMSELVES: "/updatethemselves/:id",
-      GET_VALUATOR_LIST: "/list",
+      GET_VALUATOR_LIST: "/list/:rowsPerPage/:pageNo",
       GET_VALUATOR_BY_ID: "/list/:id",
-      DELETE_VALUATOR_BY_ID: "/delete/:id"
+      DELETE_VALUATOR_BY_ID: "/delete/:id",
+      ACTIVATE_VALUATOR_BY_ID: "/activate/:id",
     },
   },
 
@@ -184,6 +187,11 @@ module.exports.CONSTANTS = {
 
       CLIENT_DEACTIVATED: "Client deactivated successfully",
       CLIENT_ACTIVATED: "Client activated successfully",
+      VALUATOR_DEACTIVATED: "Valuator deactivated successfully",
+      SO_DEACTIVATED: "Sub officer deactivated successfully",
+      VALUATOR_ACTIVATED: "Valuator activated successfully",
+      SO_ACTIVATED: "Sub officer activated successfully",
+      
     },
     ERROR: {
       LOGIN: "sign-in failed",
@@ -223,8 +231,8 @@ module.exports.CONSTANTS = {
       NOT_AUTHORIZED: "Not authorized to remove this data",
       NAME_EXISTS:"Name already exists",
       SHORT_CODE_EXISTS:"Short code already exists",
-      NO_SO_FOUND: "The requested Sub Officer could not be found",
-      NO_VALUATOR_FOUND: "The requested Valuator could not be found",
+      NO_SO_FOUND: "Sub officer not found",
+      NO_VALUATOR_FOUND: "Valuator not found",
       SO_DELETED: "Sub Officer deleted successfully",
       VALUATOR_DELETED: "Valuator deleted successfully",
 

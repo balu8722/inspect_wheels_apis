@@ -65,4 +65,11 @@ router.delete(
     CONTROLLERS.SO_CONTROLLERS.deleteSOById
 );
 
+
+router.put(
+    CONSTANTS.API_END_POINTS.SO.ACTIVATE_SO_BY_ID,
+    verifyToken,
+    CONTROLLERS.SO_CONTROLLERS.activateso
+);
+
 module.exports = router;

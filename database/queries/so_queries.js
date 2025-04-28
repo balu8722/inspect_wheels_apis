@@ -29,8 +29,14 @@ module.exports = {
 
     delete_so_by: `DELETE FROM ${CONSTANTS.DATA_TABLES.SO} WHERE id = ?`,
 
-    find_so_by: `SELECT id FROM ${CONSTANTS.DATA_TABLES.SO} WHERE id = ?`
+    find_so_by: `SELECT id FROM ${CONSTANTS.DATA_TABLES.SO} WHERE id = ?`,
 
+     isSoExistsQuery: `SELECT * FROM ${CONSTANTS.DATA_TABLES.SO} WHERE id=? AND status=1`,
 
+    // get Valuator list
+    soListQuery: (id) => `SELECT * FROM ${CONSTANTS.DATA_TABLES.SO} ${id ? ` WHERE id=?` : ` ORDER BY createdAt DESC
+  LIMIT ? OFFSET ?`}`,
+
+    totalCountQuery: (tablename) => `SELECT COUNT(*) AS total FROM ${tablename}`
     
 };
