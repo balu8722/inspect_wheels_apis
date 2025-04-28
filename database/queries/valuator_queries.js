@@ -17,6 +17,7 @@ module.exports = {
             secondary_contact_no = ?, area = ?, address = ?, profile_image = ?,
             gender = ?, dob = ?, updatedBy = ? WHERE id = ?;
     `, 
+
     update_so_themselves: `
         UPDATE ${CONSTANTS.DATA_TABLES.VALUATOR}
         SET
@@ -29,5 +30,13 @@ module.exports = {
     get_valuator_by_id: `SELECT * FROM ${CONSTANTS.DATA_TABLES.VALUATOR} WHERE id = ?`,
 
     delete_valuator_by: `DELETE FROM ${CONSTANTS.DATA_TABLES.VALUATOR} WHERE id = ?`,
+
+    isValuatorExistsQuery: `SELECT * FROM ${CONSTANTS.DATA_TABLES.VALUATOR} WHERE id=? AND status=1`,
+
+    // get Valuator list
+    valuatorListQuery: (id) => `SELECT * FROM ${CONSTANTS.DATA_TABLES.VALUATOR} ${id ? ` WHERE id=?` : ` ORDER BY createdAt DESC
+  LIMIT ? OFFSET ?`}`,
+
+    totalCountQuery: (tablename) => `SELECT COUNT(*) AS total FROM ${tablename}`
     
 };

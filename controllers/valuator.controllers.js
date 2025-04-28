@@ -4,7 +4,7 @@ const {
     presenttimestamp,
     serverErrorMsg,
     returnData,
-    encryptData,
+    encryptData, 
     convertDateFormat,
     splitMergeString,
     _serverErrorMsg,
@@ -27,6 +27,7 @@ const momentTz = require("moment-timezone");
 const soQueries = require('../database/queries/valuator_queries.js');
 const { log } = require("console");
 const { generateCrossTableExistQuery } = require('../database/queries/so_queries.js');
+const { authQueries } = require("../database/queries/auth_queries.js");
 
 const getExpiryDate = (inputDateString, year) => {
     // return expiryDateIST
@@ -42,6 +43,8 @@ const getExpiryDate = (inputDateString, year) => {
     return expiryDateIST;
 };
 
+
+// ****************** CREATE VALUATORS*******************
 module.exports.createvaluator = async (req, res) => {
  
     try {
@@ -66,21 +69,20 @@ module.exports.createvaluator = async (req, res) => {
 
        
         // checking the duplicates for username, email and contact number
-        const tables = [CONSTANTS.DATA_TABLES.SO, CONSTANTS.DATA_TABLES.ADMINS, CONSTANTS.DATA_TABLES.VALUATOR];
+        let checkValues = [username, email, contact_no, username, email, contact_no, username, email, contact_no, username, email, contact_no];
+        let isDuplicateExists = await mySQLInstance.executeQuery(authQueries.isExist_admins_so_client_valuator, checkValues)
 
-        if (await checkValueAcrossTables('username', username, tables)) {
-            return returnData(res, 409, "Username already exists.");
+        if (isDuplicateExists.length > 0) {
+            if (isDuplicateExists[0].email.toLowerCase() == email.toLowerCase()) {
+                return returnData(res, 409, `${CONSTANTS.STATUS_MSG.ERROR.EMAIL_EXISTS} in ${isDuplicateExists[0].source_table}`)
+            } else if (isDuplicateExists[0].contact_no == contact_no) {
+                return returnData(res, 409, `${CONSTANTS.STATUS_MSG.ERROR.PHONE_NO_EXISTS} in ${isDuplicateExists[0].source_table}`)
+            } else if (isDuplicateExists[0].username == username) {
+                return returnData(res, 409, `${CONSTANTS.STATUS_MSG.ERROR.USERNAME_EXISTS} in ${isDuplicateExists[0].source_table}`)
+            }
         }
-
-        if (await checkValueAcrossTables('email', email, tables)) {
-            return returnData(res, 409, "Email already exists.");
-        }
-
-        if (await checkValueAcrossTables('contact_no', contact_no, tables)) {
-            return returnData(res, 409, "Contact number already exists.");
-        }
-
         
+      
         const saltRounds = 9;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
 
@@ -104,7 +106,7 @@ module.exports.createvaluator = async (req, res) => {
 
         let payload = {
             to: email,
-            subject: "Valuaror Credentials",
+            subject: "Valuator Credentials",
             html: MAIL_HTML_TEMPLATES.SIGNUP_TEMPLATE(username, password),
         };
         await mailService.sendMail(payload);
@@ -121,15 +123,11 @@ module.exports.createvaluator = async (req, res) => {
     }
 };
 
-// UPDATE SO 
+//    *********************** UPDATE VALUATORS *****************************
 module.exports.updatevaluator = async (req, res) => {
 
     const id = req.params.id || req.body.id;
-
-    console.log("tester====>",req.body);
-    
-
-    try {
+   try {
         const {
             name,
             email,
@@ -147,35 +145,32 @@ module.exports.updatevaluator = async (req, res) => {
 
         const { id: updatedBy } = req.user;
 
-
-        // Validate required fields
-        if (!id) {
-            return returnData(res, 400, "Valuator ID is required for update.");
+         
+            
+        let isUserExists = await mySQLInstance.executeQuery(soQueries.isValuatorExistsQuery, [id])
+      
+        if (isUserExists.length < 1) {
+            saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.NO_VALUATOR_FOUND)
+            return returnData(res, 404, CONSTANTS.STATUS_MSG.ERROR.NO_VALUATOR_FOUND)
         }
-
-
-        const checkResult = await mySQLInstance.executeQuery(soQueries.find_valuator_by, [id]);
-
-        if (checkResult.length === 0) {
-            return returnData(res, 404, "The specified Valuator could not be found.");
-        }
-        // 
-        // checking the duplicates for username, email and contact number
-        const tables = [CONSTANTS.DATA_TABLES.SO, CONSTANTS.DATA_TABLES.ADMINS, CONSTANTS.DATA_TABLES.VALUATOR];
-
-
-        if (id != checkResult[0].id){
-            if (await checkValueAcrossTables('email', email, tables)) {
-                return returnData(res, 409, "Email already exists.");
+        
+        const checkValues = [
+           email, contact_no,          
+           email, contact_no,          
+           email, contact_no,         
+           email, contact_no, id       
+       ];
+       const query = authQueries.isExist_email_contact_no(CONSTANTS.DATA_TABLES.VALUATOR);
+       const isDuplicateFieldsExist = await mySQLInstance.executeQuery(query, checkValues);
+      
+        if (isDuplicateFieldsExist.length > 0) {
+            if (isDuplicateFieldsExist[0].email.toLowerCase() == email.toLowerCase()) {
+                return returnData(res, 409, `${CONSTANTS.STATUS_MSG.ERROR.EMAIL_EXISTS} in ${isDuplicateFieldsExist[0].source_table}`)
+            } else if (isDuplicateFieldsExist[0].contact_no == contact_no) {
+                return returnData(res, 409, `${CONSTANTS.STATUS_MSG.ERROR.PHONE_NO_EXISTS} in ${isDuplicateFieldsExist[0].source_table}`)
             }
-
-            if (await checkValueAcrossTables('contact_no', contact_no, tables)) {
-                return returnData(res, 409, "Contact number already exists.");
-            }
         }
-
-     
-
+    
         // Prepare the update values
         const updateValues = [
             name, 
@@ -209,7 +204,7 @@ module.exports.updatevaluator = async (req, res) => {
 };
 
 
-// UPDATE VALUATOR THEMSELVES
+// *************************UPDATE VALUATOR THEMSELVES ************************88888
 module.exports.updatethemselves = async (req, res) => {
     
     const id = req.params.id || req.body.id;
@@ -229,7 +224,7 @@ module.exports.updatethemselves = async (req, res) => {
 
         const { id: updatedBy } = req.user;
 
-        console.log("Update SO request body:", name);
+        
 
         // Validate required fields
         if (!id) {
@@ -239,12 +234,14 @@ module.exports.updatethemselves = async (req, res) => {
             return returnData(res, 400, "Name is required");
         }
 
+        let isUserExists = await mySQLInstance.executeQuery(soQueries.isValuatorExistsQuery, [id])
 
-        const checkResult = await mySQLInstance.executeQuery(soQueries.find_valuator_by, [id]);
-
-        if (checkResult.length === 0) {
-            return returnData(res, 404, "The specified Sub Officer could not be found.");
+        if (isUserExists.length < 1) {
+            saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.NO_VALUATOR_FOUND)
+            return returnData(res, 404, CONSTANTS.STATUS_MSG.ERROR.NO_VALUATOR_FOUND)
         }
+
+       
 
         // Prepare the update values
         const updateValues = [
@@ -281,19 +278,40 @@ module.exports.updatethemselves = async (req, res) => {
 
 module.exports.getValuatorList = async (req, res) => {
     try {
-        const valuatorList = await mySQLInstance.executeQuery(soQueries.get_valuator_list);
-        // Remove password field from each record
-        const filteredResult = valuatorList.map(({ password, ...rest }) => rest);
+        const { pageNo = 1, rowsPerPage = 10 } = req.params;
 
+        let totalCountQuery = soQueries.totalCountQuery(CONSTANTS.DATA_TABLES.VALUATOR)
+        let totalCount = await mySQLInstance.executeQuery(totalCountQuery)
+        totalCount = totalCount?.[0].total || 0
+        const totalPages = Math.ceil(totalCount / Number(rowsPerPage));
+
+        if ((totalCount < 1) || (totalPages < pageNo)) {
+            saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.NO_DATA_FOUND)
+            return returnData(res, 404, CONSTANTS.STATUS_MSG.ERROR.NO_DATA_FOUND)
+        }
+
+        const offset = (pageNo - 1) * Number(rowsPerPage);
+
+        const getUsersListQuery = soQueries.valuatorListQuery();
+        let list = await mySQLInstance.executeQuery(getUsersListQuery, [Number(rowsPerPage), Number(offset)])
+        if (list.length < 1) {
+            return returnData(res, 404, CONSTANTS.STATUS_MSG.ERROR.NO_DATA_FOUND);
+        }
+        let _list = list.map((item) => {
+            let user = { ...item };
+            delete user.password;
+            return user;
+        })
+        let data = { pageNo, rowsPerPage, totalPages, totalCount, list: _list }
         return returnData(
-            res, 200,
-            CONSTANTS.STATUS_MSG.SUCCESS.VALUATOR_LIST,
-            filteredResult
-            );
-    } catch (err) { 
-        console.error("Error in getROList:", err);
-        saveLoggers(req, err);
-        return serverErrorMsg(res, err?.message || "Something went wrong");
+            res,
+            200,
+            CONSTANTS.STATUS_MSG.SUCCESS.DATA_FOUND,
+            data
+        );
+    } catch (err) {
+        saveLoggers(req, err.message || "");
+        return serverErrorMsg(res, err?.message);
     }
 };
 
@@ -326,35 +344,57 @@ module.exports.getValuatorById = async (req, res) => {
         return serverErrorMsg(res, err?.message || "Something went wrong");
     }
 };
+ 
+// *******************DELETE VALUATOR BY ID   ******************
 
-// DELETE VALUATOR BY ID  
 module.exports.deleteValuatorById = async (req, res) => {
     try {
+
         const { id } = req.params;
-        const checkQuery = `SELECT id FROM ${CONSTANTS.DATA_TABLES.VALUATOR} WHERE id = ?`;
-        const checkResult = await mySQLInstance.executeQuery(checkQuery, [id]);
-
-
-        const result = await mySQLInstance.executeQuery(soQueries.delete_valuator_by, [id])
-       
-        
-        // First, check if the SO exists
-        if (checkResult.length === 0) {
+        const { id: updatedBy } = req.user;
+        const deleteQuery = authQueries.deleteAdmin_User(CONSTANTS.DATA_TABLES.VALUATOR)
+        let values = [presenttimestamp(), updatedBy, id];
+        let deleteUser = await mySQLInstance.executeQuery(deleteQuery, values)
+        if (deleteUser.affectedRows < 1) {
+            saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.NO_VALUATOR_FOUND);
             return returnData(
-                res, 404,
+                res,
+                404,
                 CONSTANTS.STATUS_MSG.ERROR.NO_VALUATOR_FOUND
             );
         }
-
-        return returnData(
-            res,
-            200,
-            CONSTANTS.STATUS_MSG.ERROR.VALUATOR_DELETED
-        );
+        return returnData(res, 200, CONSTANTS.STATUS_MSG.SUCCESS.VALUATOR_DEACTIVATED);
     } catch (err) {
-        console.error("Error in deleteSOById:", err);
-        saveLoggers(req, err);
-        return serverErrorMsg(res, err?.message || "Something went wrong");
+        saveLoggers(req, err || "");
+        return serverErrorMsg(res, err?.message);
     }
 };
 
+
+// *******************ACTIVATE THE VALUATOR*******************
+
+module.exports.activateValuator = async (req, res) => {
+
+    try {
+        const { id } = req.params;
+        const { id: updatedBy } = req.user;
+
+
+        const deleteQuery = authQueries.activate_Admin_User(CONSTANTS.DATA_TABLES.VALUATOR)
+        let values = [presenttimestamp(), updatedBy, id];
+
+        let deleteUser = await mySQLInstance.executeQuery(deleteQuery, values)
+        if (deleteUser.affectedRows < 1) {
+            saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.NO_VALUATOR_FOUND);
+            return returnData(
+                res,
+                404,
+                CONSTANTS.STATUS_MSG.ERROR.NO_VALUATOR_FOUND
+            );
+        }
+        return returnData(res, 200, CONSTANTS.STATUS_MSG.SUCCESS.VALUATOR_ACTIVATED);
+    } catch (err) {
+        saveLoggers(req, err || "");
+        return serverErrorMsg(res, err?.message);
+    }
+};
