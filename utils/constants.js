@@ -98,7 +98,7 @@ module.exports.CONSTANTS = {
       LOGIN_OTP_EMAIL_SENT: "Login OTP sent to your email",
       SIGNUP_OTP_EMAIL_SENT:
         "An OTP has been sent to your registered email address for verification",
-      FORGOT_OTP_MAIL: "OTP for reset password is sent to your Email",
+      FORGOT_OTP_MAIL: "Please check your registered email,Link for resetting password is sent to your Email",
       OTP_VERIFIED: "OTP verified successfully",
       USER_DELETED: "User deleted successfully",
       ADMIN_DELETED: "Admin deleted successfully",
