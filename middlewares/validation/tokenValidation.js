@@ -43,6 +43,7 @@ module.exports.verifyToken = async (req, res, next) => {
 module.exports.verifyAdminToken = async (req, res, next) => {
   try {
     let token = req?.headers?.authorization?.split(" ")[1];
+    
     // decrypting the token and parsing the data
     let data = await jwt.verify(token, ENV_DATA.JWT_SECRET_KEY);
     let isUser = JSON.parse(decryptData(data.encryptedData));

@@ -43,9 +43,11 @@ const client_Vaidation_Schema = {
 
   // clients 
   createClient_Schema:  Yup.object({
-        name: Yup.string()
+    contact_person_name: Yup.string()
           .required("Name is required")
           .matches(REGEX.LETTERS_ONLY, CONSTANTS.STATUS_MSG.ERROR.NAME_FIELD),
+          company_name: Yup.string()
+          .required("Comapny Name is required"),
         email: Yup.string()
           .email("Enter valid email")
           .required("Email is Required")
@@ -94,9 +96,11 @@ const client_Vaidation_Schema = {
           clientId: Yup.string()
           .required("clientId is required")
           .matches(REGEX.NUMBERS_ONLY, CONSTANTS.STATUS_MSG.ERROR.ID_NUMBER_ONLY),
-          name: Yup.string()
+          contact_person_name: Yup.string()
             .required("Name is required")
             .matches(REGEX.LETTERS_ONLY, CONSTANTS.STATUS_MSG.ERROR.NAME_FIELD),
+            company_name: Yup.string()
+          .required("Comapny Name is required"),
           email: Yup.string()
             .email("Enter valid email")
             .required("Email is Required")

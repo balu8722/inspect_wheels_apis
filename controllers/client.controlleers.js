@@ -326,7 +326,7 @@ module.exports.deleteVehicleCategory = async (req, res) => {
 // create client 
 module.exports.createClient = async (req, res) => {
     try {
-        const { name,  email, contact_no, username, password, address, city,area, state,
+        const { contact_person_name,company_name,  email, contact_no, username, password, address, city,area, state,
             pincode,dob,vehicletypes } = req.body;
         const {id:createdBy}=req.user;
 
@@ -354,13 +354,13 @@ module.exports.createClient = async (req, res) => {
                     return serverErrorMsg(res, err.message || '');
                 } else {
                    const adminValues = [
-                        name,
+                    contact_person_name,
                         email,
                         contact_no,
                         username,
                         hash,
                         (address||null),(city||null),(area||null),(state||null),(pincode||null),
-                        (dob||null),vehicletypes,createdBy
+                        (dob||null),vehicletypes,createdBy,company_name
                     ];
 
                     // create client
@@ -388,12 +388,11 @@ module.exports.createClient = async (req, res) => {
 module.exports.updateClientDetailsByAdmin = async (req, res) => {
     try {
         const {
-            name,  email, contact_no,  address, city,area, state,
+            contact_person_name,company_name,  email, contact_no,  address, city,area, state,
             pincode,dob,vehicletypes
         } = req.body;
         const { clientId } = req.params;
         const { id:updatedBy } = req.user;
-console.log("clientId",clientId)
 
         let isUserExists=await mySQLInstance.executeQuery(clientQueries.isClientExistsQuery,[clientId])
 
@@ -422,12 +421,12 @@ console.log("clientId",clientId)
 
         const updateQuery = clientQueries.updateClientQuery
         const updateValues = [
-                name,
+                contact_person_name,
                 email,
                 contact_no,
                 (address||null),(city||null),(area||null),(state||null),(pincode||null),
                 (dob||null),vehicletypes,
-                updatedBy,presenttimestamp(),
+                updatedBy,presenttimestamp(),company_name,
                 clientId
             ]
 

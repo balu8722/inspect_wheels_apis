@@ -26,13 +26,13 @@ const clientQueries = {
 
 isVehicleTypesExist:`SELECT * FROM ${CONSTANTS.DATA_TABLES.VEHICLE_TYPE} WHERE id IN (?) AND status=1`,
  // create client query
-  createClientQuery: `INSERT INTO ${CONSTANTS.DATA_TABLES.CLIENT} (name,email,contact_no,username,password,address,city,area,state,pincode,dob,vehicletypes,createdBy) VALUES (?)`,
+  createClientQuery: `INSERT INTO ${CONSTANTS.DATA_TABLES.CLIENT} (contact_person_name,email,contact_no,username,password,address,city,area,state,pincode,dob,vehicletypes,createdBy,company_name) VALUES (?)`,
  
   // is client exists query
   isClientExistsQuery: `SELECT * FROM ${CONSTANTS.DATA_TABLES.CLIENT} WHERE id=? AND status=1`,
 
   // updated client details by admin only
-  updateClientQuery: `UPDATE ${CONSTANTS.DATA_TABLES.CLIENT} SET name=?,email=?,contact_no=?,address=?,city=?,area=?,state=?,pincode=?,dob=?,vehicletypes=?,updatedBy=?,updatedAt=?
+  updateClientQuery: `UPDATE ${CONSTANTS.DATA_TABLES.CLIENT} SET contact_person_name=?,email=?,contact_no=?,address=?,city=?,area=?,state=?,pincode=?,dob=?,vehicletypes=?,updatedBy=?,updatedAt=?,company_name=?
    WHERE id=? AND status=1`,
     // get client list
    clientListQuery:(id)=> `SELECT * FROM ${CONSTANTS.DATA_TABLES.CLIENT} ${id ?` WHERE id=?`:` ORDER BY createdAt DESC

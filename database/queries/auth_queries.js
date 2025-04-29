@@ -6,7 +6,7 @@ const authQueries = {
   FROM ${CONSTANTS.DATA_TABLES.ADMINS}
   WHERE username = ? AND status=1
   UNION ALL
-  SELECT id,name,email,contact_no,NULL AS roleId,username,password, '${CONSTANTS.DATA_TABLES.CLIENT}' AS source_table
+  SELECT id,company_name AS name,email,contact_no,NULL AS roleId,username,password, '${CONSTANTS.DATA_TABLES.CLIENT}' AS source_table
   FROM ${CONSTANTS.DATA_TABLES.CLIENT}
   WHERE username = ? AND status=1
   UNION ALL
@@ -19,7 +19,7 @@ const authQueries = {
   FROM ${CONSTANTS.DATA_TABLES.ADMINS}
   WHERE username = ? OR email=? OR contact_no=?
   UNION ALL
-  SELECT id,name,email,contact_no,NULL AS roleId,username, '${CONSTANTS.DATA_TABLES.CLIENT}' AS source_table
+  SELECT id,company_name AS name,email,contact_no,NULL AS roleId,username, '${CONSTANTS.DATA_TABLES.CLIENT}' AS source_table
   FROM ${CONSTANTS.DATA_TABLES.CLIENT}
   WHERE username = ? OR email=? OR contact_no=?
   UNION ALL
@@ -37,7 +37,7 @@ const authQueries = {
   FROM ${CONSTANTS.DATA_TABLES.ADMINS}
   WHERE (email=? OR contact_no=?) ${tableName === CONSTANTS.DATA_TABLES.ADMINS ? ' AND id <> ?' : ''}
   UNION ALL
-  SELECT id,name,email,contact_no,NULL AS roleId,username, '${CONSTANTS.DATA_TABLES.CLIENT}' AS source_table
+  SELECT id,company_name AS name,email,contact_no,NULL AS roleId,username, '${CONSTANTS.DATA_TABLES.CLIENT}' AS source_table
   FROM ${CONSTANTS.DATA_TABLES.CLIENT}
   WHERE (email=? OR contact_no=?) ${tableName === CONSTANTS.DATA_TABLES.CLIENT ? ' AND id <> ?' : ''}
   UNION ALL
@@ -88,7 +88,7 @@ adminListQueryById: `SELECT a.*,r.featurePermissions,r.name AS roleName
         SELECT id,email,contact_no,emp_id,name,NULL AS roleId,username,"${CONSTANTS.DATA_TABLES.SO}" as source_table FROM ${CONSTANTS.DATA_TABLES.SO}
         WHERE email = ? AND status=1
         UNION ALL
-        SELECT id,email,contact_no,emp_id,name,NULL AS roleId,username,"${CONSTANTS.DATA_TABLES.CLIENT}" as source_table FROM ${CONSTANTS.DATA_TABLES.CLIENT}
+        SELECT id,email,contact_no,emp_id,company_name AS name,,NULL AS roleId,username,"${CONSTANTS.DATA_TABLES.CLIENT}" as source_table FROM ${CONSTANTS.DATA_TABLES.CLIENT}
         WHERE email = ? AND status=1
         UNION ALL
         SELECT id,email,contact_no,emp_id,name,NULL AS roleId,username,"${CONSTANTS.DATA_TABLES.VALUATOR}" as source_table FROM ${CONSTANTS.DATA_TABLES.VALUATOR}
@@ -147,11 +147,6 @@ adminListQueryById: `SELECT a.*,r.featurePermissions,r.name AS roleName
   reactivate_Rolename: `UPDATE ${CONSTANTS.DATA_TABLES.ROLE} SET name=?, status=1,featurePermissions=?, updatedBy=?, updatedAt=? WHERE id=?`,
 
   import_user: `INSERT INTO ${CONSTANTS.DATA_TABLES.USERS} SET ?`,
-
-  // check parameter id exists or not
-  isUser_exists: `SELECT count(*) as count,email,phoneNumber FROM ${CONSTANTS.DATA_TABLES.USERS} WHERE email IN (?) || phoneNumber IN (?)`,
-  isUserExist: `SELECT COUNT(*) AS count FROM ${CONSTANTS.DATA_TABLES.USERS} WHERE id <> ? AND (name IN (?) OR email IN (?) OR phoneNumber = ?)`,
-
 
   
   // update admin profile picture
