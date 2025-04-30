@@ -326,11 +326,12 @@ module.exports.deleteVehicleCategory = async (req, res) => {
 // create client 
 module.exports.createClient = async (req, res) => {
     try {
-        const { name,  email, contact_no, username, password, address, city,area, state,
-            pincode,dob,vehicletypes } = req.body;
+        const { contact_person_name,company_name,  email, contact_no, username, password, address, city,area, state,
+            pincode,secondary_contact_no,vehicletypes } = req.body;
+            
         const {id:createdBy}=req.user;
 
-        let isAllTypesExists=await mySQLInstance.executeQuery(clientQueries.isVehicleTypesExist,vehicletypes)
+        let isAllTypesExists=await mySQLInstance.executeQuery(clientQueries.isVehicleTypesExist,[vehicletypes])
         if(vehicletypes.length!=isAllTypesExists.length){
             saveLoggers(req, CONSTANTS.STATUS_MSG.ERROR.VEHICLE_TYPES_NOT_FOUND)
             return returnData(res, 404, CONSTANTS.STATUS_MSG.ERROR.VEHICLE_TYPES_NOT_FOUND)
@@ -354,13 +355,13 @@ module.exports.createClient = async (req, res) => {
                     return serverErrorMsg(res, err.message || '');
                 } else {
                    const adminValues = [
-                        name,
+                    contact_person_name,
                         email,
                         contact_no,
                         username,
                         hash,
                         (address||null),(city||null),(area||null),(state||null),(pincode||null),
-                        (dob||null),vehicletypes,createdBy
+                        (secondary_contact_no||null),vehicletypes.toString(),createdBy,company_name
                     ];
 
                     // create client
@@ -388,12 +389,11 @@ module.exports.createClient = async (req, res) => {
 module.exports.updateClientDetailsByAdmin = async (req, res) => {
     try {
         const {
-            name,  email, contact_no,  address, city,area, state,
-            pincode,dob,vehicletypes
+            contact_person_name,company_name,  email, contact_no,  address, city,area, state,
+            pincode,secondary_contact_no,vehicletypes
         } = req.body;
         const { clientId } = req.params;
         const { id:updatedBy } = req.user;
-console.log("clientId",clientId)
 
         let isUserExists=await mySQLInstance.executeQuery(clientQueries.isClientExistsQuery,[clientId])
 
@@ -422,12 +422,12 @@ console.log("clientId",clientId)
 
         const updateQuery = clientQueries.updateClientQuery
         const updateValues = [
-                name,
+                contact_person_name,
                 email,
                 contact_no,
                 (address||null),(city||null),(area||null),(state||null),(pincode||null),
-                (dob||null),vehicletypes,
-                updatedBy,presenttimestamp(),
+                (secondary_contact_no||null),vehicletypes.toString(),
+                updatedBy,presenttimestamp(),company_name,
                 clientId
             ]
 
@@ -446,7 +446,11 @@ console.log("clientId",clientId)
 
 module.exports.getClientList = async (req, res) => {
     try {
-        const {pageNo=1,rowsPerPage=10 }=req.params;        
+        const {pageNo=1,rowsPerPage=10,clientId }=req.params;   
+             
+        let data={}
+
+        if(!clientId){
 
         let totalCountQuery=clientQueries.totalCountQuery(CONSTANTS.DATA_TABLES.CLIENT)
         let totalCount =await mySQLInstance.executeQuery(totalCountQuery)
@@ -459,7 +463,7 @@ module.exports.getClientList = async (req, res) => {
         }
 
         const offset = (pageNo - 1) * Number(rowsPerPage);
-        
+           
         const getUsersListQuery = clientQueries.clientListQuery();
         let list =await mySQLInstance.executeQuery(getUsersListQuery,[Number(rowsPerPage),Number(offset)])
         if (list.length < 1) {
@@ -470,7 +474,15 @@ module.exports.getClientList = async (req, res) => {
             delete user.password;
             return user;
         })
-        let data={pageNo,rowsPerPage,totalPages,totalCount,list:_list}
+         data={pageNo,rowsPerPage,totalPages,totalCount,list:_list}
+    }else{
+        let list =await mySQLInstance.executeQuery(clientQueries.clientListQuery(clientId),[clientId])
+        if (list.length < 1) {
+            return returnData(res, 404, CONSTANTS.STATUS_MSG.ERROR.NO_DATA_FOUND);
+        }
+        const {password,...rest}=list[0]
+        data=rest;
+    }
         return returnData(
             res,
             200,

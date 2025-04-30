@@ -7,7 +7,7 @@ const auth_Schema = {
   signUp_Schema: (reqBody) => {
 
     const signUpValidationSchema = Yup.object({
-        name: Yup.string()
+        name: Yup.string().trim()
           .required("Name is required")
           .matches(REGEX.LETTERS_ONLY, CONSTANTS.STATUS_MSG.ERROR.NAME_FIELD),
         email: Yup.string()
@@ -26,7 +26,7 @@ const auth_Schema = {
             REGEX.GENDER_VALID,
             "Gender must be male, female or others"
           ),
-        username: Yup.string()
+        username: Yup.string().trim()
           .required("Username is Required"),
         password: Yup.string()
           .required("Password is Required")
@@ -66,7 +66,7 @@ const auth_Schema = {
   // signin schema
   signin_schema: (reqBody) => {
     const validtionSchema =  Yup.object({
-      username: Yup.string()
+      username: Yup.string().trim()
         .required("Username is required"),
       password: Yup.string().required("password required")})
         .strict(true)
@@ -192,7 +192,7 @@ const auth_Schema = {
   // update user detail schema
   updateUserDetail_Schema: () => {
     const updateDetailsValidationSchema =  Yup.object({
-        name: Yup.string()
+        name: Yup.string().trim()
           .required("Name is required")
           .matches(REGEX.LETTERS_ONLY, CONSTANTS.STATUS_MSG.ERROR.NAME_FIELD),
         address: Yup.string().notRequired(),
@@ -246,7 +246,7 @@ const auth_Schema = {
 
   // update user detail schema
   updateUserDetailByAdmin_Schema: Yup.object({
-    name: Yup.string()
+    name: Yup.string().trim()
       .required("Name is required")
       .matches(REGEX.LETTERS_ONLY, CONSTANTS.STATUS_MSG.ERROR.NAME_FIELD),
     email: Yup.string()
@@ -331,7 +331,7 @@ const auth_Schema = {
 
   // create role schema
   createRole_schema: Yup.object({
-    name: Yup.string().required("roleName is Required"),
+    name: Yup.string().trim().required("roleName is Required"),
     featurePermissions: Yup.string().notRequired()
   })
     .strict(true)
@@ -339,7 +339,7 @@ const auth_Schema = {
 
   // update role schema
   updateRole_schema: Yup.object({
-    name: Yup.string().required("roleName is Required"),
+    name: Yup.string().trim().required("roleName is Required"),
     featurePermissions: Yup.string().notRequired(),
     roleId: Yup.string()
       .required("roleId is required")
@@ -350,7 +350,7 @@ const auth_Schema = {
 
   //import user validate fields
   importUser_schema: Yup.object({
-    name: Yup.string()
+    name: Yup.string().trim()
       .required("name is Required in all rows")
       .matches(REGEX.LETTERS_ONLY, CONSTANTS.STATUS_MSG.ERROR.NAME_FIELD),
     email: Yup.string()
