@@ -16,27 +16,29 @@ const so_Schema = {
         secondary_contact_no: Yup.string().notRequired(),
         area: Yup.string().notRequired(),
         address: Yup.string().notRequired(),
-        dob: Yup.string().test("dob", (value, context) => {
-                  let isTrue = value !== undefined && value !== null && value !== "";
-                  if (isTrue && !REGEX.DOB_FORMAT.test(value)) {
-                    throw context.createError({
-                      message: "Date of birth must be in the format `YYYY-MM-DD`",
-                    });
-                  }
-                  return true;
-                }),
-        contact_no: Yup.string()
+        dob: Yup.string().notRequired(),
+        // dob: Yup.string().test("dob", (value, context) => {
+        //           let isTrue = value !== undefined && value !== null && value !== "";
+        //           if (isTrue && !REGEX.DOB_FORMAT.test(value)) {
+        //             throw context.createError({
+        //               message: "Date of birth must be in the format `YYYY-MM-DD`",
+        //             });
+        //           }
+        //           return true;
+        //         }),
+         contact_no: Yup.string()
             .required("Contact number is required")
             .matches(REGEX.PHONE_NO, "Enter a valid mobile number"),
           profile_image: Yup.string().notRequired(),
           username: Yup.string()
             .required("Username is required"),
-             gender: Yup.string()
-                      .required("gender is required")
-                      .matches(
-                        REGEX.GENDER_VALID,
-                        "Gender must be male, female or others"
-                      ),
+          gender: Yup.string().notRequired(),
+            //  gender: Yup.string()
+            //           .required("gender is required")
+            //           .matches(
+            //             REGEX.GENDER_VALID,
+            //             "Gender must be male, female or others"
+            //           ),
          password: Yup.string()
                   .required("Password is Required")
                   .matches(
@@ -64,13 +66,8 @@ const so_Schema = {
         secondary_contact_no: Yup.string().notRequired(),
         area: Yup.string().notRequired(),
         address: Yup.string().notRequired(),
-        gender: Yup.string()
-            .required("gender is required")
-            .matches(
-                REGEX.GENDER_VALID,
-                "Gender must be male, female or others"
-            ),
-        dob: Yup.string().required("Date of birth is required"),
+      gender: Yup.string().notRequired(),
+      dob: Yup.string().notRequired(),
         contact_no: Yup.string()
             .required("Contact number is required")
             .matches(REGEX.PHONE_NO, "Enter a valid mobile number"),
