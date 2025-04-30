@@ -90,6 +90,12 @@ router.get(
     isSuperAdmin,
     CONTROLLERS.CLIENT_CONTROLLERS.getClientList
 );
+router.get(
+    CONSTANTS.API_END_POINTS.CLIENTS.GET_CLIENT_BY_ID,
+    verifyAdminToken,
+    isSuperAdmin,
+    CONTROLLERS.CLIENT_CONTROLLERS.getClientList
+);
 router.delete(
     CONSTANTS.API_END_POINTS.CLIENTS.DEACTIVATE_CLIENT_BY_ID,
     client_validation.clientIdValidation,
